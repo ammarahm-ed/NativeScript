@@ -261,10 +261,10 @@ export class GesturesObserver extends GesturesObserverBase {
 				this._detach();
 			};
 
-			this.target.on('loaded', this._onTargetLoaded);
-			this.target.on('unloaded', this._onTargetUnloaded);
+			// this.target.on('loaded', this._onTargetLoaded);
+			// this.target.on('unloaded', this._onTargetUnloaded);
 
-			if (this.target.isLoaded) {
+			if (this.target.isConnected) {
 				this._attach(this.target, type);
 			}
 		}
@@ -274,8 +274,8 @@ export class GesturesObserver extends GesturesObserverBase {
 		this._detach();
 
 		if (this.target) {
-			this.target.off('loaded', this._onTargetLoaded);
-			this.target.off('unloaded', this._onTargetUnloaded);
+			// this.target.off('loaded', this._onTargetLoaded);
+			// this.target.off('unloaded', this._onTargetUnloaded);
 
 			this._onTargetLoaded = null;
 			this._onTargetUnloaded = null;
@@ -325,13 +325,13 @@ export class GesturesObserver extends GesturesObserverBase {
 		if (type & GestureTypes.touch) {
 			this._notifyTouch = true;
 		} else {
-			this.target.notify({
-				eventName: GestureEvents.gestureAttached,
-				object: this.target,
-				type,
-				view: this.target,
-				android: recognizer,
-			});
+			// this.target.notify({
+			// 	eventName: GestureEvents.gestureAttached,
+			// 	object: this.target,
+			// 	type,
+			// 	view: this.target,
+			// 	android: recognizer,
+			// });
 		}
 	}
 
@@ -369,12 +369,10 @@ export class GesturesObserver extends GesturesObserverBase {
 
 function _getTapArgs(type: GestureTypes, view: View, e: android.view.MotionEvent): TapGestureEventData {
 	return <TapGestureEventData>{
-		type: type,
+		gesture: type,
 		view: view,
 		android: e,
 		ios: undefined,
-		object: view,
-		eventName: toString(type),
 		getPointerCount: () => e.getPointerCount(),
 		getX: () => layout.toDeviceIndependentPixels(e.getX()),
 		getY: () => layout.toDeviceIndependentPixels(e.getY()),
@@ -383,38 +381,32 @@ function _getTapArgs(type: GestureTypes, view: View, e: android.view.MotionEvent
 
 function _getLongPressArgs(type: GestureTypes, view: View, state: GestureStateTypes, e: android.view.MotionEvent): GestureEventDataWithState {
 	return <GestureEventDataWithState>{
-		type: type,
+		gesture: type,
 		view: view,
 		android: e,
 		ios: undefined,
-		object: view,
-		eventName: toString(type),
 		state: state,
 	};
 }
 
 function _getSwipeArgs(direction: SwipeDirection, view: View, initialEvent: android.view.MotionEvent, currentEvent: android.view.MotionEvent): SwipeGestureEventData {
 	return <SwipeGestureEventData>{
-		type: GestureTypes.swipe,
+		gesture: GestureTypes.swipe,
 		view: view,
 		android: { initial: initialEvent, current: currentEvent },
 		direction: direction,
 		ios: undefined,
-		object: view,
-		eventName: toString(GestureTypes.swipe),
 	};
 }
 
 function _getPanArgs(deltaX: number, deltaY: number, view: View, state: GestureStateTypes, initialEvent: android.view.MotionEvent, currentEvent: android.view.MotionEvent): PanGestureEventData {
 	return <PanGestureEventData>{
-		type: GestureTypes.pan,
+		gesture: GestureTypes.pan,
 		view: view,
 		android: { initial: initialEvent, current: currentEvent },
 		deltaX: deltaX,
 		deltaY: deltaY,
 		ios: undefined,
-		object: view,
-		eventName: toString(GestureTypes.pan),
 		state: state,
 	};
 }
@@ -426,7 +418,7 @@ function _executeCallback(observer: GesturesObserver, args: GestureEventData) {
 }
 
 class PinchGestureEventData implements PinchGestureEventData {
-	public type = GestureTypes.pinch;
+	public gesture = GestureTypes.pinch;
 	public eventName = toString(GestureTypes.pinch);
 	public ios;
 
@@ -628,12 +620,12 @@ class CustomRotateGestureDetector {
 
 	private executeCallback(event: android.view.MotionEvent, state: GestureStateTypes) {
 		const args = <RotationGestureEventData>{
-			type: GestureTypes.rotation,
+			gesture: GestureTypes.rotation,
 			view: this.target,
 			android: event,
 			rotation: this.angle,
 			ios: undefined,
-			object: this.target,
+			object: this.target as any,
 			eventName: toString(GestureTypes.rotation),
 			state: state,
 		};
@@ -684,7 +676,7 @@ class Pointer implements Pointer {
 
 class TouchGestureEventData implements TouchGestureEventData {
 	eventName: string = toString(GestureTypes.touch);
-	type: GestureTypes = GestureTypes.touch;
+	gesture: GestureTypes = GestureTypes.touch;
 	ios: any = undefined;
 	action: string;
 	view: View;

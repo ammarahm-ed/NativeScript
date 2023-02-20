@@ -1,43 +1,28 @@
+import { HTMLElement, Event, DOMEvent } from './../../dom/index';
 // Definitions.
-import { AlignSelf, FlexGrow, FlexShrink, FlexWrapBefore, Order } from '../../layouts/flexbox-layout';
-import { Page } from '../../page';
 
 // Types.
-import { CoreTypes } from '../../../core-types';
-import { Property, CssProperty, CssAnimationProperty, InheritedProperty, clearInheritedProperties, propagateInheritableProperties, propagateInheritableCssProperties, initNativeView } from '../properties';
 import { CSSUtils } from '../../../css/system-classes';
-import { Source } from '../../../utils/debug';
-import { Binding, BindingOptions } from '../bindable';
-import { Trace } from '../../../trace';
-import { Observable, PropertyChangeData, WrappedValue } from '../../../data/observable';
 import { Style } from '../../styling/style';
-import { paddingTopProperty, paddingRightProperty, paddingBottomProperty, paddingLeftProperty } from '../../styling/style-properties';
+import { paddingBottomProperty, paddingLeftProperty, paddingRightProperty, paddingTopProperty } from '../../styling/style-properties';
+import { clearInheritedProperties, CssAnimationProperty, CssProperty, InheritedProperty, initNativeView, propagateInheritableCssProperties, propagateInheritableProperties, Property } from '../properties';
 
 // TODO: Remove this import!
 import { getClass } from '../../../utils/types';
 
-import { profile } from '../../../profiling';
+import NodeTypeEnum from '../../dom/src/nodes/node/NodeTypeEnum';
+import * as Styling from '../../styling/style-scope';
+import { ViewBase as ViewDefinition } from './index.d';
+import { DOMNode } from '../../../debugger/dom-node';
+import { CoreTypes } from '../../enums';
+import IEventTarget from '../../dom/src/event/IEventTarget';
 
-import * as dnm from '../../../debugger/dom-node';
-import * as ssm from '../../styling/style-scope';
-import { ViewBase as ViewBaseDefinition } from '.';
-
-let domNodeModule: typeof dnm;
-
-function ensuredomNodeModule(): void {
-	if (!domNodeModule) {
-		domNodeModule = require('../../../debugger/dom-node');
-	}
-}
-
-let styleScopeModule: typeof ssm;
+let styleScopeModule: typeof Styling;
 function ensureStyleScopeModule() {
 	if (!styleScopeModule) {
-		styleScopeModule = require('../../styling/style-scope');
+		styleScopeModule = require('@nativescript/core/ui/styling/style-scope');
 	}
 }
-
-const defaultBindingSource = {};
 
 export interface ShowModalOptions {
 	/**
@@ -48,7 +33,7 @@ export interface ShowModalOptions {
 	/**
 	 * A function that will be called when the view is closed. Any arguments provided when calling ShownModallyData.closeCallback will be available here.
 	 */
-	closeCallback: (...args) => void;
+	closeCallback: Function;
 
 	/**
 	 * An optional parameter specifying whether to show the modal view in full-screen mode.
@@ -88,9 +73,8 @@ export interface ShowModalOptions {
 		 * An optional parameter specifying whether the modal view can be dismissed when not in full-screen mode.
 		 */
 		cancelable?: boolean;
-
 		/**
-		 * An optional parameter specifying the windowSoftInputMode of the dialog window.
+		 * An optional parameter specifying the windowSoftInputMode of the dialog window
 		 * For possible values see https://developer.android.com/reference/android/view/WindowManager.LayoutParams#softInputMode
 		 */
 		windowSoftInputMode?: number;
@@ -101,215 +85,23 @@ export interface ShowModalOptions {
 	cancelable?: boolean;
 }
 
-export function getAncestor(view: ViewBaseDefinition, criterion: string | { new () }): ViewBaseDefinition {
-	let matcher: (view: ViewBaseDefinition) => boolean = null;
-	if (typeof criterion === 'string') {
-		matcher = (view: ViewBaseDefinition) => view.typeName === criterion;
-	} else {
-		matcher = (view: ViewBaseDefinition) => view instanceof criterion;
-	}
+export type ViewBaseEventsMap = {
+	loaded: DOMEvent<ViewBase>;
+	unloaded: DOMEvent<ViewBase>;
+	created: DOMEvent<ViewBase>;
+	disposeNativeView: DOMEvent<ViewBase>;
+};
 
-	for (let parent = view.parent; parent != null; parent = parent.parent) {
-		if (matcher(parent)) {
-			return parent;
-		}
-	}
-
-	return null;
-}
-
-export function getViewById(view: ViewBaseDefinition, id: string): ViewBaseDefinition {
-	if (!view) {
-		return undefined;
-	}
-
-	if (view.id === id) {
-		return view;
-	}
-
-	let retVal: ViewBaseDefinition;
-	const descendantsCallback = function (child: ViewBaseDefinition): boolean {
-		if (child.id === id) {
-			retVal = child;
-
-			// break the iteration by returning false
-			return false;
-		}
-
-		return true;
-	};
-
-	eachDescendant(view, descendantsCallback);
-
-	return retVal;
-}
-
-export function getViewByDomId(view: ViewBaseDefinition, domId: number): ViewBaseDefinition {
-	if (!view) {
-		return undefined;
-	}
-
-	if (view._domId === domId) {
-		return view;
-	}
-
-	let retVal: ViewBaseDefinition;
-	const descendantsCallback = function (child: ViewBaseDefinition): boolean {
-		if (view._domId === domId) {
-			retVal = child;
-
-			// break the iteration by returning false
-			return false;
-		}
-
-		return true;
-	};
-
-	eachDescendant(view, descendantsCallback);
-
-	return retVal;
-}
-
-export function eachDescendant(view: ViewBaseDefinition, callback: (child: ViewBaseDefinition) => boolean) {
-	if (!callback || !view) {
-		return;
-	}
-
-	let continueIteration: boolean;
-	const localCallback = function (child: ViewBaseDefinition): boolean {
-		continueIteration = callback(child);
-		if (continueIteration) {
-			child.eachChild(localCallback);
-		}
-
-		return continueIteration;
-	};
-
-	view.eachChild(localCallback);
-}
-
-let viewIdCounter = 1;
-
-// const contextMap = new WeakMap<Object, Map<string, WeakRef<Object>[]>>();
-
-// function getNativeView(context: Object, typeName: string): Object {
-//     let typeMap = contextMap.get(context);
-//     if (!typeMap) {
-//         typeMap = new Map<string, WeakRef<Object>[]>();
-//         contextMap.set(context, typeMap);
-//         return undefined;
-//     }
-
-//     const array = typeMap.get(typeName);
-//     if (array) {
-//         let nativeView;
-//         while (array.length > 0) {
-//             const weakRef = array.pop();
-//             nativeView = weakRef.get();
-//             if (nativeView) {
-//                 return nativeView;
-//             }
-//         }
-//     }
-//     return undefined;
-// }
-
-// function putNativeView(context: Object, view: ViewBase): void {
-//     const typeMap = contextMap.get(context);
-//     const typeName = view.typeName;
-//     let list = typeMap.get(typeName);
-//     if (!list) {
-//         list = [];
-//         typeMap.set(typeName, list);
-//     }
-//     list.push(new WeakRef(view.nativeViewProtected));
-// }
-
-enum Flags {
-	superOnLoadedCalled = 'Loaded',
-	superOnUnloadedCalled = 'Unloaded',
-}
-
-enum SuspendType {
-	Incremental = 0,
-	Loaded = 1 << 20,
-	NativeView = 1 << 21,
-	UISetup = 1 << 22,
-	IncrementalCountMask = ~((1 << 20) + (1 << 21) + (1 << 22)),
-}
-
-namespace SuspendType {
-	export function toString(type: SuspendType): string {
-		return (type ? 'suspended' : 'resumed') + '(' + 'Incremental: ' + (type & SuspendType.IncrementalCountMask) + ', ' + 'Loaded: ' + !(type & SuspendType.Loaded) + ', ' + 'NativeView: ' + !(type & SuspendType.NativeView) + ', ' + 'UISetup: ' + !(type & SuspendType.UISetup) + ')';
-	}
-}
-
-export abstract class ViewBase extends Observable implements ViewBaseDefinition {
-	public static loadedEvent = 'loaded';
-	public static unloadedEvent = 'unloaded';
-	public static createdEvent = 'created';
-	public static disposeNativeViewEvent = 'disposeNativeView';
-
-	private _onLoadedCalled = false;
-	private _onUnloadedCalled = false;
-	private _iosView: Object;
-	private _androidView: Object;
-	private _style: Style;
-	private _isLoaded: boolean;
-	private _visualState: string;
-	private _templateParent: ViewBase;
-	private __nativeView: any;
-	// private _disableNativeViewRecycling: boolean;
-
-	public domNode: dnm.DOMNode;
-
-	public recycleNativeView: 'always' | 'never' | 'auto';
-	public viewController: any;
-	public bindingContext: any;
-	public nativeViewProtected: any;
-	public parent: ViewBase;
-	public isCollapsed; // Default(false) set in prototype
-
+let viewIdCounter = 0;
+export class ViewBase<EventsMap = {}> extends HTMLElement<EventsMap & ViewBaseEventsMap> implements ViewDefinition {
 	public id: string;
-	public className: string;
-
-	public _domId: number;
-	public _context: any;
-	public _isAddedToNativeVisualTree: boolean;
-	public _cssState: ssm.CssState = new ssm.CssState(new WeakRef(this));
-	public _styleScope: ssm.StyleScope;
-	public _suspendedUpdates: {
-		[propertyName: string]: Property<ViewBase, any> | CssProperty<Style, any> | CssAnimationProperty<Style, any>;
-	};
-	public _suspendNativeUpdatesCount: number;
+	public _styleScope: Styling.StyleScope;
 	public _isStyleScopeHost: boolean;
-	public _automaticallyAdjustsScrollViewInsets: boolean;
-
-	// Dynamic properties.
-	left: CoreTypes.LengthType;
-	top: CoreTypes.LengthType;
-	effectiveLeft: number;
-	effectiveTop: number;
-	dock: 'left' | 'top' | 'right' | 'bottom';
-	row: number;
-	col: number;
-	column: number; // synonym for "col"
-	rowSpan: number;
-	colSpan: number;
-	columnSpan: number; // synonym for "columnSpan"
-
-	order: Order;
-	flexGrow: FlexGrow;
-	flexShrink: FlexShrink;
-	flexWrapBefore: FlexWrapBefore;
-	alignSelf: AlignSelf;
-
-	_oldLeft: number;
-	_oldTop: number;
-	_oldRight: number;
-	_oldBottom: number;
-	_ignoreFlexMinWidthHeightReset: boolean;
-
+	public _cssState: Styling.CssState = new Styling.CssState(new WeakRef(this as any));
+	public _suspendedUpdates: {
+		[propertyName: string]: Property<any, any> | CssProperty<Style, any> | CssAnimationProperty<Style, any>;
+	};
+	public _context: any;
 	public effectiveMinWidth: number;
 	public effectiveMinHeight: number;
 	public effectiveWidth: number;
@@ -333,23 +125,54 @@ export abstract class ViewBase extends Observable implements ViewBaseDefinition 
 	public _defaultPaddingLeft: number;
 	public _isPaddingRelative: boolean;
 
-	public _moduleName: string;
+	public recycleNativeView: 'always' | 'never' | 'auto';
+	public viewController: any;
+	public nativeViewProtected: any;
+	public isCollapsed: boolean; // Default(false) set in prototype
 
+	public isConnected: boolean = false;
 	public reusable: boolean;
+	public _isViewBase: boolean;
+
+	public _suspendNativeUpdatesCount: number;
+	public _oldLeft: number;
+	public _oldTop: number;
+	public _oldRight: number;
+	public _oldBottom: number;
+	public _domId: number;
+
+	public _automaticallyAdjustsScrollViewInsets: boolean;
 
 	constructor() {
-		super();
+		super(NodeTypeEnum.elementNode, 'ViewBase');
+		this.tagName = this.constructor.name;
 		this._domId = viewIdCounter++;
 		this._style = new Style(new WeakRef(this));
-		this.notify({ eventName: ViewBase.createdEvent, type: this.constructor.name, object: this });
+		this.dispatchEvent(new Event('created'));
+	}
+	left: CoreTypes.LengthType;
+	top: CoreTypes.LengthType;
+	effectiveLeft: number;
+	effectiveTop: number;
+	dock: 'left' | 'top' | 'right' | 'bottom';
+	row: number;
+	col: number;
+	column: number;
+	rowSpan: number;
+	colSpan: number;
+	columnSpan: number;
+	_moduleName?: string;
+	_style: Style;
+
+	get page(): any {
+		if (this.parentNode) {
+			return (this.parentNode as ViewBase).page;
+		}
+		return null;
 	}
 
-	// Used in Angular.
-	get parentNode() {
-		return this._templateParent || this.parent;
-	}
-	set parentNode(node: ViewBase) {
-		this._templateParent = node;
+	get typeName(): string {
+		return getClass(this);
 	}
 
 	get nativeView(): any {
@@ -360,34 +183,39 @@ export abstract class ViewBase extends Observable implements ViewBaseDefinition 
 		this.setNativeView(value);
 	}
 
-	// TODO: Use Type.prototype.typeName instead.
-	get typeName(): string {
-		return getClass(this);
-	}
-
 	get style(): Style {
 		return this._style;
 	}
-	set style(inlineStyle: Style /* | string */) {
-		if (typeof inlineStyle === 'string') {
-			this.setInlineStyle(inlineStyle);
+	set style(value: Style /* | string */) {
+		if (typeof value === 'string') {
+			this.setInlineStyle(value);
 		} else {
 			throw new Error('View.style property is read-only.');
 		}
 	}
 
-	get android(): any {
-		// this._disableNativeViewRecycling = true;
-		return this._androidView;
+	setAttribute(name: string, value: unknown): void {
+		if (name === 'style') {
+			if (typeof value === 'string') {
+				this.setInlineStyle(value);
+			} else if (typeof value === 'object') {
+				for (const property in value) {
+					this.style.setProperty(property, value[property]);
+				}
+			}
+			return;
+		}
+
+		super.setAttribute(name, value);
 	}
 
-	get ios(): any {
-		// this._disableNativeViewRecycling = true;
-		return this._iosView;
+	getAttribute(name: string) {
+		if (name === 'style') return this.style;
+		return super.getAttribute(name);
 	}
 
-	get isLoaded(): boolean {
-		return this._isLoaded;
+	public createNativeView(): Object {
+		return undefined;
 	}
 
 	get ['class'](): string {
@@ -397,79 +225,167 @@ export abstract class ViewBase extends Observable implements ViewBaseDefinition 
 		this.className = v;
 	}
 
-	getViewById<T extends ViewBaseDefinition>(id: string): T {
-		return <T>getViewById(this, id);
+	public disposeNativeView() {
+		this.dispatchEvent(new Event('disposeNativeView'));
 	}
 
-	getViewByDomId<T extends ViewBaseDefinition>(domId: number): T {
-		return <T>getViewByDomId(this, domId);
-	}
+	public initNativeView(): void {}
 
-	get page(): Page {
-		if (this.parent) {
-			return this.parent.page;
+	public resetNativeView(): void {}
+
+	insertBefore(newNode: ViewBase, referenceNode: ViewBase): ViewBase {
+		super.insertBefore(newNode, referenceNode);
+		// propagate properties
+		propagateInheritableProperties(this as any, newNode as any);
+		// Inherit stylescope of parent
+		newNode._inheritStyleScope(this._styleScope);
+		propagateInheritableCssProperties(this.style, newNode.style);
+
+		if (this._context) {
+			newNode.renderNativeView(this._context, referenceNode ? this.childNodes.findIndex((node) => node === referenceNode) : -1);
 		}
 
-		return null;
+		if (this.isConnected) {
+			newNode.connectedCallback();
+		}
+
+		return newNode;
 	}
 
-	public ensureDomNode() {
-		if (!this.domNode) {
-			ensuredomNodeModule();
-			this.domNode = new domNodeModule.DOMNode(this);
+	removeChild(node: any) {
+		super.removeChild(node);
+		this.disconnectedCallback();
+		this.detachNativeView();
+	}
+
+	public detachNativeView(force?: boolean): void {
+		// No context means we are already teared down.
+		if (!this._context) return;
+
+		const preserveNativeView = this.reusable && !force;
+
+		if (!preserveNativeView) {
+			for (const node of this.childNodes) {
+				(node as ViewBase).detachNativeView(force);
+			}
+		}
+
+		if (this.parentNode) (this.parentNode as ViewBase).onChildRemoved(this);
+		clearInheritedProperties(this as any);
+		if (!preserveNativeView) {
+			this.disposeNativeView();
+			this._suspendNativeUpdates(SuspendType.UISetup);
+			this.nativeViewProtected = null;
+			this._context = null;
 		}
 	}
 
-	// Overridden so we don't raise `propertyChange`
-	// The property will raise its own event.
-	public set(name: string, value: any) {
-		this[name] = WrappedValue.unwrap(value);
+	public renderNativeView(context: any, index?: number, parentIsLoaded?: boolean): void {
+		this._context = context;
+		// Create the native view
+		const nativeView = this.createNativeView();
+
+		if (global.isAndroid && nativeView && __ANDROID__) {
+			setDefaultPaddings(this);
+		}
+
+		this.setNativeView(nativeView);
+
+		// Notify parent that a child has been added to DOM.
+		// so the child can be attached to the actual native tree
+		// of the parent nativeView.
+		if (this.parentNode) (this.parentNode as ViewBase).onChildAdded(this, this.childIndexToNativeChildIndex(index));
+
+		// Render all children of this node.
+		for (const node of this.childNodes as ViewBase[]) {
+			node.renderNativeView(this._context);
+		}
 	}
 
-	@profile
-	public onLoaded() {
-		this.setFlag(Flags.superOnLoadedCalled, true);
-		if (this._isLoaded) {
+	setNativeView(nativeView: any) {
+		if (this.nativeView === nativeView) return;
+		this.nativeViewProtected = nativeView as any;
+		this._suspendNativeUpdates(SuspendType.NativeView);
+		this._suspendedUpdates = undefined;
+		this.initNativeView();
+		this._resumeNativeUpdates(SuspendType.NativeView);
+	}
+
+	onChildAdded(node: ViewBase, index?: number) {
+		if (node.isConnected) throw new Error('Child is already connected to another parent.');
+	}
+
+	onChildRemoved(node: ViewBase, index?: number) {
+		node.isConnected = false;
+	}
+
+	public _layoutParent() {
+		if (this.parentNode) {
+			(this.parentNode as ViewBase)._layoutParent();
+		}
+	}
+
+	public connectedCallback() {
+		if (this.isConnected) {
 			return;
 		}
 
-		this._isLoaded = true;
+		this.isConnected = true;
 		this._cssState.onLoaded();
 		this._resumeNativeUpdates(SuspendType.Loaded);
 
-		this.eachChild((child) => {
-			this.loadView(child);
-
-			return true;
-		});
-
-		this._emit('loaded');
+		for (const node of this.childNodes as ViewBase[]) {
+			node.connectedCallback();
+		}
+		this.dispatchEvent(new Event('loaded'));
 	}
 
-	@profile
-	public onUnloaded() {
-		this.setFlag(Flags.superOnUnloadedCalled, true);
-		if (!this._isLoaded) {
+	public disconnectedCallback() {
+		if (!this.isConnected) {
 			return;
 		}
 
 		this._suspendNativeUpdates(SuspendType.Loaded);
 
-		this.eachChild((child) => {
-			this.unloadView(child);
+		for (const node of this.childNodes as ViewBase[]) {
+			node.disconnectedCallback();
+		}
 
-			return true;
-		});
-
-		this._isLoaded = false;
+		this.isConnected = false;
 		this._cssState.onUnloaded();
-		this._emit('unloaded');
+		this.dispatchEvent(new Event('unloaded'));
 	}
 
-	public _layoutParent() {
-		if (this.parent) {
-			this.parent._layoutParent();
+	childIndexToNativeChildIndex(index: number) {
+		return index;
+	}
+
+	_inheritStyleScope(styleScope: Styling.StyleScope): void {
+		// If we are styleScope don't inherit parent stylescope.
+		// TODO: Consider adding parent scope and merge selectors.
+		if (this._isStyleScopeHost) return;
+		if (this._styleScope !== styleScope) {
+			this._styleScope = styleScope;
+			this._cssState.onChange();
+			for (const node of this.childNodes as ViewBase[]) {
+				node._inheritStyleScope(styleScope);
+			}
 		}
+	}
+
+	_onCssStateChange() {
+		this._cssState.onChange();
+		for (const node of this.childNodes as ViewBase[]) {
+			node._cssState.onChange();
+		}
+	}
+
+	setInlineStyle(style: string) {
+		if (typeof style !== 'string') {
+			throw new Error('Parameter should be valid CSS string!');
+		}
+		ensureStyleScopeModule();
+		styleScopeModule.applyInlineStyle(this, style, undefined);
 	}
 
 	public _suspendNativeUpdates(type: SuspendType): void {
@@ -504,46 +420,42 @@ export abstract class ViewBase extends Observable implements ViewBaseDefinition 
 		}
 	}
 
-	private setFlag(flag: Flags, value: boolean): void {
-		switch (flag) {
-			case Flags.superOnLoadedCalled:
-				this._onLoadedCalled = value;
-				break;
+	public onResumeNativeUpdates(): void {
+		// Apply native setters...
+		initNativeView(this, undefined, undefined);
+	}
 
-			case Flags.superOnUnloadedCalled:
-				this._onUnloadedCalled = value;
-				break;
+	public _shouldDelayLayout(): boolean {
+		return false;
+	}
+
+	private performLayout(currentRun = 0) {
+		// if there's an animation in progress we need to delay the layout
+		// we've added a guard of 5000 milliseconds execution
+		// to make sure that the layout will happen even if the animation haven't finished in 5 seconds
+		if (this._shouldDelayLayout() && currentRun < 100) {
+			setTimeout(() => this.performLayout(currentRun), currentRun);
+			currentRun++;
+		} else {
+			(this.parentNode as ViewBase).requestLayout();
 		}
 	}
 
-	private isFlagSet(flag: Flags): boolean {
-		switch (flag) {
-			case Flags.superOnLoadedCalled:
-				return this._onLoadedCalled;
-
-			case Flags.superOnUnloadedCalled:
-				return this._onUnloadedCalled;
-		}
+	public requestLayout(): void {
+		// Default implementation for non View instances (like TabViewItem).
+		if (this.parentNode) this.performLayout();
 	}
 
-	private callFunctionWithSuper(flag: Flags, func: () => void): void {
-		this.setFlag(flag, false);
-		func();
-		if (!this.isFlagSet(flag)) {
-			throw new Error(`super.${flag} not called in ${this}`);
-		}
+	get android(): any {
+		return this.nativeViewProtected;
 	}
 
-	public callLoaded(): void {
-		this.callFunctionWithSuper(Flags.superOnLoadedCalled, () => this.onLoaded());
+	get ios(): any {
+		return this.nativeViewProtected;
 	}
 
-	public callUnloaded(): void {
-		this.callFunctionWithSuper(Flags.superOnUnloadedCalled, () => this.onUnloaded());
-	}
-
-	private notifyPseudoClassChanged(pseudoClass: string): void {
-		this.notify({ eventName: ':' + pseudoClass, object: this });
+	private onPseudoClassChange(pseudoClass: string): void {
+		//this.notify({ eventName: ':' + pseudoClass, object: this });
 	}
 
 	private pseudoClassAliases = {
@@ -565,440 +477,38 @@ export abstract class ViewBase extends Observable implements ViewBaseDefinition 
 		return allStates;
 	}
 
-	@profile
 	public addPseudoClass(name: string): void {
 		const allStates = this.getAllAliasedStates(name);
 		for (let i = 0; i < allStates.length; i++) {
 			if (!this.cssPseudoClasses.has(allStates[i])) {
 				this.cssPseudoClasses.add(allStates[i]);
-				this.notifyPseudoClassChanged(allStates[i]);
+				this.onPseudoClassChange(allStates[i]);
 			}
 		}
 	}
 
-	@profile
 	public deletePseudoClass(name: string): void {
 		const allStates = this.getAllAliasedStates(name);
 		for (let i = 0; i < allStates.length; i++) {
 			if (this.cssPseudoClasses.has(allStates[i])) {
 				this.cssPseudoClasses.delete(allStates[i]);
-				this.notifyPseudoClassChanged(allStates[i]);
+				this.onPseudoClassChange(allStates[i]);
 			}
 		}
-	}
-
-	private bindingContextChanged(data: PropertyChangeData): void {
-		this.bindings.get('bindingContext').bind(data.value);
-	}
-
-	private bindings: Map<string, Binding>;
-	private shouldAddHandlerToParentBindingContextChanged: boolean;
-	private bindingContextBoundToParentBindingContextChanged: boolean;
-
-	public bind(options: BindingOptions, source: Object = defaultBindingSource): void {
-		const targetProperty = options.targetProperty;
-		this.unbind(targetProperty);
-
-		if (!this.bindings) {
-			this.bindings = new Map<string, Binding>();
-		}
-
-		const binding = new Binding(this, options);
-		this.bindings.set(targetProperty, binding);
-
-		let bindingSource = source;
-		if (bindingSource === defaultBindingSource) {
-			bindingSource = this.bindingContext;
-			binding.sourceIsBindingContext = true;
-			if (targetProperty === 'bindingContext') {
-				this.bindingContextBoundToParentBindingContextChanged = true;
-				const parent = this.parent;
-				if (parent) {
-					parent.on('bindingContextChange', this.bindingContextChanged, this);
-				} else {
-					this.shouldAddHandlerToParentBindingContextChanged = true;
-				}
-			}
-		}
-
-		binding.bind(bindingSource);
-	}
-
-	public unbind(property: string): void {
-		const bindings = this.bindings;
-		if (!bindings) {
-			return;
-		}
-
-		const binding = bindings.get(property);
-		if (binding) {
-			binding.unbind();
-			bindings.delete(property);
-			if (binding.sourceIsBindingContext) {
-				if (property === 'bindingContext') {
-					this.shouldAddHandlerToParentBindingContextChanged = false;
-					this.bindingContextBoundToParentBindingContextChanged = false;
-					const parent = this.parent;
-					if (parent) {
-						parent.off('bindingContextChange', this.bindingContextChanged, this);
-					}
-				}
-			}
-		}
-	}
-
-	private performLayout(currentRun = 0) {
-		// if there's an animation in progress we need to delay the layout
-		// we've added a guard of 5000 milliseconds execution
-		// to make sure that the layout will happen even if the animation haven't finished in 5 seconds
-		if (this._shouldDelayLayout() && currentRun < 100) {
-			setTimeout(() => this.performLayout(currentRun), currentRun);
-			currentRun++;
-		} else {
-			this.parent.requestLayout();
-		}
-	}
-
-	@profile
-	public requestLayout(): void {
-		// Default implementation for non View instances (like TabViewItem).
-		const parent = this.parent;
-		if (parent) {
-			this.performLayout();
-		}
-	}
-
-	public eachChild(callback: (child: ViewBase) => boolean) {
-		//
-	}
-
-	@profile
-	public _addView(view: ViewBase, atIndex?: number) {
-		if (Trace.isEnabled()) {
-			Trace.write(`${this}._addView(${view}, ${atIndex})`, Trace.categories.ViewHierarchy);
-		}
-
-		if (!view) {
-			throw new Error('Expecting a valid View instance.');
-		}
-		if (!(view instanceof ViewBase)) {
-			throw new Error(view + ' is not a valid View instance.');
-		}
-		if (view.parent) {
-			throw new Error('View already has a parent. View: ' + view + ' Parent: ' + view.parent);
-		}
-
-		view.parent = this;
-		this._addViewCore(view, atIndex);
-		view._parentChanged(null);
-
-		if (this.domNode) {
-			this.domNode.onChildAdded(view);
-		}
-	}
-
-	public _addViewCore(view: ViewBase, atIndex?: number) {
-		propagateInheritableProperties(this, view);
-		view._inheritStyleScope(this._styleScope);
-		propagateInheritableCssProperties(this.style, view.style);
-
-		if (this._context) {
-			view._setupUI(this._context, atIndex);
-		}
-
-		if (this._isLoaded) {
-			this.loadView(view);
-		}
-	}
-
-	public loadView(view: ViewBase): void {
-		if (view && !view.isLoaded) {
-			view.callLoaded();
-		}
-	}
-
-	public _shouldDelayLayout(): boolean {
-		return false;
-	}
-
-	public unloadView(view: ViewBase): void {
-		if (view && view.isLoaded) {
-			view.callUnloaded();
-		}
-	}
-
-	/**
-	 * Core logic for removing a child view from this instance. Used by the framework to handle lifecycle events more centralized. Do not use outside the UI Stack implementation.
-	 */
-	public _removeView(view: ViewBase) {
-		if (Trace.isEnabled()) {
-			Trace.write(`${this}._removeView(${view})`, Trace.categories.ViewHierarchy);
-		}
-
-		if (view.parent !== this) {
-			throw new Error('View not added to this instance. View: ' + view + ' CurrentParent: ' + view.parent + ' ExpectedParent: ' + this);
-		}
-
-		if (this.domNode) {
-			this.domNode.onChildRemoved(view);
-		}
-
-		this._removeViewCore(view);
-		view.parent = undefined;
-		view._parentChanged(this);
-	}
-
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected"
-	 */
-	public _removeViewCore(view: ViewBase) {
-		this.unloadView(view);
-
-		if (view._context) {
-			view._tearDownUI();
-		}
-	}
-
-	public createNativeView(): Object {
-		return undefined;
-	}
-
-	public disposeNativeView() {
-		this.notify({
-			eventName: ViewBase.disposeNativeViewEvent,
-			object: this,
-		});
-	}
-
-	public initNativeView(): void {
-		//
-	}
-
-	public resetNativeView(): void {
-		//
-	}
-
-	private resetNativeViewInternal(): void {
-		// const nativeView = this.nativeViewProtected;
-		// if (nativeView && global.isAndroid) {
-		//     const recycle = this.recycleNativeView;
-		//     if (recycle === "always" || (recycle === "auto" && !this._disableNativeViewRecycling)) {
-		//         resetNativeView(this);
-		//         if (this._isPaddingRelative) {
-		//             nativeView.setPaddingRelative(this._defaultPaddingLeft, this._defaultPaddingTop, this._defaultPaddingRight, this._defaultPaddingBottom);
-		//         } else {
-		//             nativeView.setPadding(this._defaultPaddingLeft, this._defaultPaddingTop, this._defaultPaddingRight, this._defaultPaddingBottom);
-		//         }
-		//         this.resetNativeView();
-		//     }
-		// }
-		// if (this._cssState) {
-		//     this._cancelAllAnimations();
-		// }
 	}
 
 	_setupAsRootView(context: any): void {
-		this._setupUI(context);
+		this.renderNativeView(context);
 	}
 
-	@profile
-	public _setupUI(context: any, atIndex?: number, parentIsLoaded?: boolean): void {
-		if (this._context === context) {
-			// this check is unnecessary as this function should never be called when this._context === context as it means the view was somehow detached,
-			// which is only possible by setting reusable = true. Adding it either way for feature flag safety
-			if (this.reusable) {
-				if (this.parent && !this._isAddedToNativeVisualTree) {
-					const nativeIndex = this.parent._childIndexToNativeChildIndex(atIndex);
-					this._isAddedToNativeVisualTree = this.parent._addViewToNativeVisualTree(this, nativeIndex);
-				}
-			}
-			return;
-		} else if (this._context) {
-			this._tearDownUI(true);
-		}
-
-		this._context = context;
-
-		// This will account for nativeView that is created in createNativeView, recycled
-		// or for backward compatibility - set before _setupUI in iOS constructor.
-		let nativeView = this.nativeViewProtected;
-
-		// if (global.isAndroid) {
-		//     const recycle = this.recycleNativeView;
-		//     if (recycle === "always" || (recycle === "auto" && !this._disableNativeViewRecycling)) {
-		//         nativeView = <android.view.View>getNativeView(context, this.typeName);
-		//     }
-		// }
-		if (!nativeView) {
-			nativeView = this.createNativeView();
-		}
-
-		if (global.isAndroid) {
-			// this check is also unecessary as this code should never be reached with _androidView != null unless reusable = true
-			// also adding this check for feature flag safety
-			if (this._androidView !== nativeView || !this.reusable) {
-				this._androidView = nativeView;
-				if (nativeView) {
-					if (this._isPaddingRelative === undefined) {
-						this._isPaddingRelative = nativeView.isPaddingRelative();
-					}
-
-					let result: any /* android.graphics.Rect */ = (<any>nativeView).defaultPaddings;
-					if (result === undefined) {
-						result = org.nativescript.widgets.ViewHelper.getPadding(nativeView);
-						(<any>nativeView).defaultPaddings = result;
-					}
-
-					this._defaultPaddingTop = result.top;
-					this._defaultPaddingRight = result.right;
-					this._defaultPaddingBottom = result.bottom;
-					this._defaultPaddingLeft = result.left;
-
-					const style = this.style;
-					if (!paddingTopProperty.isSet(style)) {
-						this.effectivePaddingTop = this._defaultPaddingTop;
-					}
-					if (!paddingRightProperty.isSet(style)) {
-						this.effectivePaddingRight = this._defaultPaddingRight;
-					}
-					if (!paddingBottomProperty.isSet(style)) {
-						this.effectivePaddingBottom = this._defaultPaddingBottom;
-					}
-					if (!paddingLeftProperty.isSet(style)) {
-						this.effectivePaddingLeft = this._defaultPaddingLeft;
-					}
-				}
-			}
-		} else {
-			this._iosView = nativeView;
-		}
-
-		this.setNativeView(nativeView);
-
-		if (this.parent) {
-			const nativeIndex = this.parent._childIndexToNativeChildIndex(atIndex);
-			this._isAddedToNativeVisualTree = this.parent._addViewToNativeVisualTree(this, nativeIndex);
-		}
-
-		this._resumeNativeUpdates(SuspendType.UISetup);
-
-		this.eachChild((child) => {
-			child._setupUI(context);
-
-			return true;
-		});
-	}
-
-	setNativeView(value: any): void {
-		if (this.__nativeView === value) {
-			return;
-		}
-
-		if (this.__nativeView) {
-			this._suspendNativeUpdates(SuspendType.NativeView);
-			// We may do a `this.resetNativeView()` here?
-		}
-
-		this.__nativeView = this.nativeViewProtected = value;
-		if (this.__nativeView) {
-			this._suspendedUpdates = undefined;
-			this.initNativeView();
-			this._resumeNativeUpdates(SuspendType.NativeView);
+	public _onRootViewReset(): void {
+		for (const node of this.childNodes as ViewBase[]) {
+			node._onRootViewReset();
 		}
 	}
 
-	public destroyNode(forceDestroyChildren?: boolean): void {
-		this.reusable = false;
-		this.callUnloaded();
-		this._tearDownUI(forceDestroyChildren);
-	}
-
-	@profile
-	public _tearDownUI(force?: boolean): void {
-		// No context means we are already teared down.
-		if (!this._context) {
-			return;
-		}
-		const preserveNativeView = this.reusable && !force;
-
-		this.resetNativeViewInternal();
-
-		if (!preserveNativeView) {
-			this.eachChild((child) => {
-				child._tearDownUI(force);
-
-				return true;
-			});
-		}
-
-		if (this.parent) {
-			this.parent._removeViewFromNativeVisualTree(this);
-		}
-
-		// const nativeView = this.nativeViewProtected;
-		// if (nativeView && global.isAndroid) {
-		//     const recycle = this.recycleNativeView;
-		//     let shouldRecycle = false;
-		//     if (recycle === "always") {
-		//         shouldRecycle = true;
-		//     } else if (recycle === "auto" && !this._disableNativeViewRecycling) {
-		//         const propertiesSet = Object.getOwnPropertySymbols(this).length + Object.getOwnPropertySymbols(this.style).length / 2;
-		//         shouldRecycle = propertiesSet <= this.recyclePropertyCounter;
-		//     }
-
-		//     // const nativeParent = global.isAndroid ? (<android.view.View>nativeView).getParent() : (<UIView>nativeView).superview;
-		//     const nativeParent = (<android.view.View>nativeView).getParent();
-		//     const animation = (<android.view.View>nativeView).getAnimation();
-		//     if (shouldRecycle && !nativeParent && !animation) {
-		//         putNativeView(this._context, this);
-		//     }
-		// }
-
-		if (!preserveNativeView) {
-			this.disposeNativeView();
-
-			this._suspendNativeUpdates(SuspendType.UISetup);
-
-			this.setNativeView(null);
-			this._androidView = null;
-			this._iosView = null;
-
-			this._context = null;
-		}
-
-		if (this.domNode) {
-			this.domNode.dispose();
-			this.domNode = undefined;
-		}
-	}
-
-	_childIndexToNativeChildIndex(index?: number): number {
-		return index;
-	}
-
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected".
-	 */
-	public _addViewToNativeVisualTree(view: ViewBase, atIndex?: number): boolean {
-		if (view._isAddedToNativeVisualTree) {
-			throw new Error('Child already added to the native visual tree.');
-		}
-
-		return true;
-	}
-
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected"
-	 */
-	public _removeViewFromNativeVisualTree(view: ViewBase) {
-		view._isAddedToNativeVisualTree = false;
-	}
-
+	private _visualState: string;
 	public _goToVisualState(state: string) {
-		if (Trace.isEnabled()) {
-			Trace.write(this + ' going to state: ' + state, Trace.categories.Style);
-		}
-
 		if (state === this._visualState) {
 			return;
 		}
@@ -1008,122 +518,55 @@ export abstract class ViewBase extends Observable implements ViewBaseDefinition 
 		this.addPseudoClass(state);
 	}
 
-	/**
-	 * @deprecated
-	 *
-	 * This used to be the way to set attribute values in early {N} versions.
-	 * Now attributes are expected to be set as plain properties on the view instances.
-	 */
-	public _applyXmlAttribute(attribute: string, value: string): boolean {
-		console.log('ViewBase._applyXmlAttribute(...) is deprecated; set attributes as plain properties instead');
-
-		if (attribute === 'style' || attribute === 'rows' || attribute === 'columns' || attribute === 'fontAttributes') {
-			this[attribute] = value;
-
-			return true;
-		}
-
-		return false;
-	}
-
-	public setInlineStyle(style: string): void {
-		if (typeof style !== 'string') {
-			throw new Error('Parameter should be valid CSS string!');
-		}
-
-		ensureStyleScopeModule();
-		styleScopeModule.applyInlineStyle(this, style, undefined);
-	}
-
-	public _parentChanged(oldParent: ViewBase): void {
-		const newParent = this.parent;
-
-		//Overridden
-		if (oldParent) {
-			clearInheritedProperties(this);
-			if (this.bindingContextBoundToParentBindingContextChanged) {
-				oldParent.off('bindingContextChange', this.bindingContextChanged, this);
-			}
-		} else if (this.shouldAddHandlerToParentBindingContextChanged) {
-			newParent.on('bindingContextChange', this.bindingContextChanged, this);
-			this.bindings.get('bindingContext').bind(newParent.bindingContext);
-		}
-	}
-
-	public onResumeNativeUpdates(): void {
-		// Apply native setters...
-		initNativeView(this, undefined, undefined);
-	}
-
-	public toString(): string {
-		let str = this.typeName;
-		if (this.id) {
-			str += `<${this.id}>`;
-		} else {
-			str += `(${this._domId})`;
-		}
-		const source = Source.get(this);
-		if (source) {
-			str += `@${source};`;
-		}
-
-		return str;
-	}
-
-	_onCssStateChange(): void {
-		this._cssState.onChange();
-		eachDescendant(this, (child: ViewBase) => {
-			child._cssState.onChange();
-
-			return true;
-		});
-	}
-
-	_inheritStyleScope(styleScope: ssm.StyleScope): void {
-		// If we are styleScope don't inherit parent stylescope.
-		// TODO: Consider adding parent scope and merge selectors.
-		if (this._isStyleScopeHost) {
-			return;
-		}
-
-		if (this._styleScope !== styleScope) {
-			this._styleScope = styleScope;
-			this._onCssStateChange();
-			this.eachChild((child) => {
-				child._inheritStyleScope(styleScope);
-
-				return true;
-			});
-		}
-	}
-
 	public showModal(...args): ViewBase {
-		const parent = this.parent;
+		const parent = this.parentNode as ViewBase;
 
 		return parent && parent.showModal(...args);
 	}
 
 	public closeModal(...args): void {
-		const parent = this.parent;
+		const parent = this.parentNode as ViewBase;
 		if (parent) {
 			parent.closeModal(...args);
 		}
 	}
 
 	public _dialogClosed(): void {
-		eachDescendant(this, (child: ViewBase) => {
+		for (const child of this.childNodes as ViewBase[]) {
 			child._dialogClosed();
+		}
+	}
+}
 
-			return true;
-		});
+function setDefaultPaddings(node: ViewBase) {
+	const nativeView = node.nativeView;
+	if (this._isPaddingRelative === undefined) {
+		this._isPaddingRelative = (nativeView as android.view.View).isPaddingRelative();
 	}
 
-	public _onRootViewReset(): void {
-		eachDescendant(this, (child: ViewBase) => {
-			child._onRootViewReset();
+	let result: any /* android.graphics.Rect */ = nativeView.defaultPaddings;
+	if (result === undefined) {
+		result = org.nativescript.widgets.ViewHelper.getPadding(nativeView as android.view.View);
+		(<any>nativeView).defaultPaddings = result;
+	}
 
-			return true;
-		});
+	this._defaultPaddingTop = result.top;
+	this._defaultPaddingRight = result.right;
+	this._defaultPaddingBottom = result.bottom;
+	this._defaultPaddingLeft = result.left;
+
+	const style = this.style;
+	if (!paddingTopProperty.isSet(style)) {
+		this.effectivePaddingTop = this._defaultPaddingTop;
+	}
+	if (!paddingRightProperty.isSet(style)) {
+		this.effectivePaddingRight = this._defaultPaddingRight;
+	}
+	if (!paddingBottomProperty.isSet(style)) {
+		this.effectivePaddingBottom = this._defaultPaddingBottom;
+	}
+	if (!paddingLeftProperty.isSet(style)) {
+		this.effectivePaddingLeft = this._defaultPaddingLeft;
 	}
 }
 
@@ -1158,27 +601,23 @@ ViewBase.prototype._isViewBase = true;
 ViewBase.prototype.recycleNativeView = 'never';
 ViewBase.prototype.reusable = false;
 
+enum SuspendType {
+	Incremental = 0,
+	Loaded = 1 << 20,
+	NativeView = 1 << 21,
+	UISetup = 1 << 22,
+	IncrementalCountMask = ~((1 << 20) + (1 << 21) + (1 << 22)),
+}
+
 ViewBase.prototype._suspendNativeUpdatesCount = SuspendType.Loaded | SuspendType.NativeView | SuspendType.UISetup;
 
-export const bindingContextProperty = new InheritedProperty<ViewBase, any>({
-	name: 'bindingContext',
-});
-bindingContextProperty.register(ViewBase);
+namespace SuspendType {
+	export function toString(type: SuspendType): string {
+		return (type ? 'suspended' : 'resumed') + '(' + 'Incremental: ' + (type & SuspendType.IncrementalCountMask) + ', ' + 'Loaded: ' + !(type & SuspendType.Loaded) + ', ' + 'NativeView: ' + !(type & SuspendType.NativeView) + ', ' + 'UISetup: ' + !(type & SuspendType.UISetup) + ')';
+	}
+}
 
-export const hiddenProperty = new Property<ViewBase, boolean>({
-	name: 'hidden',
-	defaultValue: false,
-	affectsLayout: global.isIOS,
-	valueConverter: booleanConverter,
-	valueChanged: (target, oldValue, newValue) => {
-		if (target) {
-			target.isCollapsed = !!newValue;
-		}
-	},
-});
-hiddenProperty.register(ViewBase);
-
-export const classNameProperty = new Property<ViewBase, string>({
+export const classNameProperty = new Property<any, string>({
 	name: 'className',
 	valueChanged(view: ViewBase, oldValue: string, newValue: string) {
 		const cssClasses = view.cssClasses;
@@ -1206,11 +645,29 @@ export const classNameProperty = new Property<ViewBase, string>({
 });
 classNameProperty.register(ViewBase);
 
-export const idProperty = new Property<ViewBase, string>({
+export const idProperty = new Property<any, string>({
 	name: 'id',
-	valueChanged: (view, oldValue, newValue) => view._onCssStateChange(),
+	valueChanged: (view, oldValue, newValue) => view.onCssStateChange(),
 });
 idProperty.register(ViewBase);
+
+export const bindingContextProperty = new InheritedProperty<ViewBase, any>({
+	name: 'bindingContext',
+});
+bindingContextProperty.register(ViewBase);
+
+export const hiddenProperty = new Property<ViewBase, boolean>({
+	name: 'hidden',
+	defaultValue: false,
+	affectsLayout: global.isIOS,
+	valueConverter: booleanConverter,
+	valueChanged: (target, oldValue, newValue) => {
+		if (target) {
+			target.isCollapsed = !!newValue;
+		}
+	},
+});
+hiddenProperty.register(ViewBase);
 
 export function booleanConverter(v: string | boolean): boolean {
 	const lowercase = (v + '').toLowerCase();

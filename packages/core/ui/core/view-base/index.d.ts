@@ -8,6 +8,7 @@ import { Page } from '../../page';
 import { Order, FlexGrow, FlexShrink, FlexWrapBefore, AlignSelf } from '../../layouts/flexbox-layout';
 import { Length } from '../../styling/style-properties';
 import { DOMNode } from '../../../debugger/dom-node';
+import { HTMLElement } from '../../dom';
 
 /**
  * Iterates through all child views (via visual tree) and executes a function.
@@ -103,7 +104,7 @@ export interface ShowModalOptions {
 	cancelable?: boolean;
 }
 
-export abstract class ViewBase extends Observable {
+export abstract class ViewBase extends HTMLElement {
 	// Dynamic properties.
 	left: CoreTypes.LengthType;
 	top: CoreTypes.LengthType;
@@ -122,13 +123,13 @@ export abstract class ViewBase extends Observable {
 	 * Setting `columnSpan` property is the same as `colSpan`
 	 */
 	columnSpan: number;
-	domNode: DOMNode;
+	//: DOMNode;
 
-	order: Order;
-	flexGrow: FlexGrow;
-	flexShrink: FlexShrink;
-	flexWrapBefore: FlexWrapBefore;
-	alignSelf: AlignSelf;
+	// order: Order;
+	// flexGrow: FlexGrow;
+	// flexShrink: FlexShrink;
+	// flexWrapBefore: FlexWrapBefore;
+	// alignSelf: AlignSelf;
 
 	/**
 	 * @private
@@ -219,25 +220,25 @@ export abstract class ViewBase extends Observable {
 	public effectiveBorderBottomWidth: number;
 	public effectiveBorderLeftWidth: number;
 
-	/**
-	 * String value used when hooking to loaded event.
-	 */
-	public static loadedEvent: string;
+	// /**
+	//  * String value used when hooking to loaded event.
+	//  */
+	// public static loadedEvent: string;
 
-	/**
-	 * String value used when hooking to unloaded event.
-	 */
-	public static unloadedEvent: string;
+	// /**
+	//  * String value used when hooking to unloaded event.
+	//  */
+	// public static unloadedEvent: string;
 
-	/**
-	 * String value used when hooking to creation event
-	 */
-	public static createdEvent: string;
+	// /**
+	//  * String value used when hooking to creation event
+	//  */
+	// public static createdEvent: string;
 
 	/**
 	 * String value used when hooking to disposeNativeView event
 	 */
-	public static disposeNativeViewEvent: string;
+	//public static disposeNativeViewEvent: string;
 
 	public ios: any;
 	public android: any;
@@ -252,7 +253,7 @@ export abstract class ViewBase extends Observable {
 	 */
 	public nativeViewProtected: any;
 	public nativeView: any;
-	public bindingContext: any;
+	//public bindingContext: any;
 
 	/**
 	 * Gets or sets if the view is reusable.
@@ -268,12 +269,12 @@ export abstract class ViewBase extends Observable {
 	/**
 	 * Gets the parent view. This property is read-only.
 	 */
-	public readonly parent: ViewBase;
+	//	public readonly parent: ViewBase;
 
 	/**
 	 * Gets the template parent or the native parent. Sets the template parent.
 	 */
-	public parentNode: ViewBase;
+	//public parentNode: ViewBase;
 
 	/**
 	 * Gets or sets the id for this view.
@@ -288,7 +289,7 @@ export abstract class ViewBase extends Observable {
 	/**
 	 * Gets owner page. This is a read-only property.
 	 */
-	public readonly page: Page;
+	//	public readonly page: Page;
 
 	/**
 	 * Gets the style object associated to this view.
@@ -300,70 +301,71 @@ export abstract class ViewBase extends Observable {
 	 * Readonly property
 	 */
 	public isCollapsed: boolean;
-	public readonly isLoaded: boolean;
+	//	public readonly isLoaded: boolean;
 
-	/**
-	 * Returns the child view with the specified id.
-	 */
-	public getViewById<T extends ViewBase>(id: string): T;
+	// /**
+	//  * Returns the child view with the specified id.
+	//  */
+	// public getViewById<T extends ViewBase>(id: string): T;
 
-	/**
-	 * Returns the child view with the specified domId.
-	 */
-	public getViewByDomId<T extends ViewBase>(id: number): T;
+	// /**
+	//  * Returns the child view with the specified domId.
+	//  */
+	// public getViewByDomId<T extends ViewBase>(id: number): T;
 
-	/**
-	 * Load view.
-	 * @param view to load.
-	 */
-	public loadView(view: ViewBase): void;
+	// /**
+	//  * Load view.
+	//  * @param view to load.
+	//  */
+	// public loadView(view: ViewBase): void;
 
-	/**
-	 * Unload view.
-	 * @param view to unload.
-	 */
-	public unloadView(view: ViewBase): void;
+	// /**
+	//  * Unload view.
+	//  * @param view to unload.
+	//  */
+	// public unloadView(view: ViewBase): void;
 
-	public onLoaded(): void;
-	public onUnloaded(): void;
+	// public onLoaded(): void;
+	// public onUnloaded(): void;
 	public onResumeNativeUpdates(): void;
 
-	public bind(options: BindingOptions, source?: Object): void;
-	public unbind(property: string): void;
+	// public bind(options: BindingOptions, source?: Object): void;
+	// public unbind(property: string): void;
 
 	/**
 	 * Invalidates the layout of the view and triggers a new layout pass.
 	 */
 	public requestLayout(): void;
 
-	/**
-	 * Iterates over children of type ViewBase.
-	 * @param callback Called for each child of type ViewBase. Iteration stops if this method returns falsy value.
-	 */
-	public eachChild(callback: (child: ViewBase) => boolean): void;
+	// /**
+	//  * Iterates over children of type ViewBase.
+	//  * @param callback Called for each child of type ViewBase. Iteration stops if this method returns falsy value.
+	//  */
+	// public eachChild(callback: (child: ViewBase) => boolean): void;
 
-	public _addView(view: ViewBase, atIndex?: number): void;
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected"
-	 */
-	public _addViewCore(view: ViewBase, atIndex?: number): void;
+	// public _addView(view: ViewBase, atIndex?: number): void;
+	// /**
+	//  * Method is intended to be overridden by inheritors and used as "protected"
+	//  */
+	// public _addViewCore(view: ViewBase, atIndex?: number): void;
 
-	public _removeView(view: ViewBase): void;
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected"
-	 */
-	public _removeViewCore(view: ViewBase): void;
-	public _parentChanged(oldParent: ViewBase): void;
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected"
-	 */
-	public _dialogClosed(): void;
-	/**
-	 * Method is intended to be overridden by inheritors and used as "protected"
-	 */
+	// public _removeView(view: ViewBase): void;
+	// /**
+	//  * Method is intended to be overridden by inheritors and used as "protected"
+	//  */
+	// public _removeViewCore(view: ViewBase): void;
+	// public _parentChanged(oldParent: ViewBase): void;
+	// /**
+	//  * Method is intended to be overridden by inheritors and used as "protected"
+	//  */
+	// public _dialogClosed(): void;
+	// /**
+	//  * Method is intended to be overridden by inheritors and used as "protected"
+	//  */
+
 	public _onRootViewReset(): void;
 
-	_domId: number;
+	//_domId: number;
 
 	_cssState: any /* "ui/styling/style-scope" */;
 	/**
@@ -386,20 +388,20 @@ export abstract class ViewBase extends Observable {
 	 * Setups the UI for ViewBase and all its children recursively.
 	 * This method should *not* be overridden by derived views.
 	 */
-	_setupUI(context: any /* android.content.Context */, atIndex?: number): void;
+	//_setupUI(context: any /* android.content.Context */, atIndex?: number): void;
 
 	/**
 	 * Tears down the UI for ViewBase and all its children recursively.
 	 * This method should *not* be overridden by derived views.
 	 */
-	_tearDownUI(force?: boolean): void;
+	//_tearDownUI(force?: boolean): void;
 
 	/**
 	 * Tears down the UI of a reusable node by making it no longer reusable.
 	 * @see _tearDownUI
 	 * @param forceDestroyChildren Force destroy the children (even if they are reusable)
 	 */
-	destroyNode(forceDestroyChildren?: boolean): void;
+	//destroyNode(forceDestroyChildren?: boolean): void;
 
 	/**
 	 * Creates a native view.
@@ -429,14 +431,14 @@ export abstract class ViewBase extends Observable {
 	 */
 	setNativeView(view: any): void;
 
-	_isAddedToNativeVisualTree: boolean;
+	//_isAddedToNativeVisualTree: boolean;
 
 	/**
 	 * Performs the core logic of adding a child view to the native visual tree. Returns true if the view's native representation has been successfully added, false otherwise.
 	 */
-	_addViewToNativeVisualTree(view: ViewBase, atIndex?: number): boolean;
-	_removeViewFromNativeVisualTree(view: ViewBase): void;
-	_childIndexToNativeChildIndex(index?: number): number;
+	// _addViewToNativeVisualTree(view: ViewBase, atIndex?: number): boolean;
+	// _removeViewFromNativeVisualTree(view: ViewBase): void;
+	// _childIndexToNativeChildIndex(index?: number): number;
 
 	/**
 	 * @protected
@@ -456,7 +458,7 @@ export abstract class ViewBase extends Observable {
 	 * @unstable
 	 * Ensures a dom-node for this view.
 	 */
-	public ensureDomNode();
+	//public ensureDomNode();
 
 	public recycleNativeView: 'always' | 'never' | 'auto';
 
@@ -468,14 +470,14 @@ export abstract class ViewBase extends Observable {
 	/**
 	 * @private
 	 */
-	public _ignoreFlexMinWidthHeightReset: boolean;
+	//public _ignoreFlexMinWidthHeightReset: boolean;
 
 	public _styleScope: any;
 
 	/**
 	 * @private
 	 */
-	public _automaticallyAdjustsScrollViewInsets: boolean;
+	//public _automaticallyAdjustsScrollViewInsets: boolean;
 	/**
 	 * @private
 	 */
@@ -518,12 +520,12 @@ export abstract class ViewBase extends Observable {
 	/**
 	 * @private
 	 */
-	callLoaded(): void;
+	// callLoaded(): void;
 
-	/**
-	 * @private
-	 */
-	callUnloaded(): void;
+	// /**
+	//  * @private
+	//  */
+	// callUnloaded(): void;
 	//@endprivate
 }
 

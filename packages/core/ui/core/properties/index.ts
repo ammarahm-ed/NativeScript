@@ -290,22 +290,22 @@ export class Property<T extends ViewBase, U> implements TypedPropertyDescriptor<
 				}
 
 				if (this.hasListeners(eventName)) {
-					this.notify<PropertyChangeData>({
-						object: this,
-						eventName,
-						propertyName,
-						value,
-						oldValue,
-					});
+					// this.notify<PropertyChangeData>({
+					// 	object: this,
+					// 	eventName,
+					// 	propertyName,
+					// 	value,
+					// 	oldValue,
+					// });
 				}
 
-				if (this.domNode) {
-					if (reset) {
-						this.domNode.attributeRemoved(propertyName);
-					} else {
-						this.domNode.attributeModified(propertyName, value);
-					}
-				}
+				// if (this.domNode) {
+				// 	if (reset) {
+				// 		this.domNode.attributeRemoved(propertyName);
+				// 	} else {
+				// 		this.domNode.attributeModified(propertyName, value);
+				// 	}
+				// }
 			}
 		};
 
@@ -327,22 +327,22 @@ export class Property<T extends ViewBase, U> implements TypedPropertyDescriptor<
 				}
 
 				if (owner.hasListeners(eventName)) {
-					owner.notify<PropertyChangeData>({
-						object: owner,
-						eventName,
-						propertyName,
-						value,
-						oldValue,
-					});
+					// owner.notify<PropertyChangeData>({
+					// 	object: owner,
+					// 	eventName,
+					// 	propertyName,
+					// 	value,
+					// 	oldValue,
+					// });
 				}
 
 				if (affectsLayout) {
 					owner.requestLayout();
 				}
 
-				if (owner.domNode) {
-					owner.domNode.attributeModified(propertyName, value);
-				}
+				// if (owner.domNode) {
+				// 	owner.domNode.attributeModified(propertyName, value);
+				// }
 			}
 		};
 
@@ -475,26 +475,26 @@ export class CoercibleProperty<T extends ViewBase, U> extends Property<T, U> imp
 				}
 
 				if (this.hasListeners(eventName)) {
-					this.notify<PropertyChangeData>({
-						object: this,
-						eventName,
-						propertyName,
-						value,
-						oldValue,
-					});
+					// this.notify<PropertyChangeData>({
+					// 	object: this,
+					// 	eventName,
+					// 	propertyName,
+					// 	value,
+					// 	oldValue,
+					// });
 				}
 
 				if (affectsLayout) {
 					this.requestLayout();
 				}
 
-				if (this.domNode) {
-					if (reset) {
-						this.domNode.attributeRemoved(propertyName);
-					} else {
-						this.domNode.attributeModified(propertyName, value);
-					}
-				}
+				// if (this.domNode) {
+				// 	if (reset) {
+				// 		this.domNode.attributeRemoved(propertyName);
+				// 	} else {
+				// 		this.domNode.attributeModified(propertyName, value);
+				// 	}
+				// }
 			}
 		};
 	}
@@ -523,7 +523,7 @@ export class InheritedProperty<T extends ViewBase, U> extends Property<T, U> imp
 
 				if (value === unsetValue) {
 					// If unsetValue - we want to reset the property.
-					const parent: ViewBase = that.parent;
+					const parent: ViewBase = that.parentNode as ViewBase;
 					// If we have parent and it has non-default value we use as our inherited value.
 					if (parent && parent[sourceKey] !== ValueSource.Default) {
 						unboxedValue = parent[name];
@@ -547,7 +547,7 @@ export class InheritedProperty<T extends ViewBase, U> extends Property<T, U> imp
 
 				if (currentValue !== newValue) {
 					const reset = newValueSource === ValueSource.Default;
-					that.eachChild((child) => {
+					for (const child of that.childNodes) {
 						const childValueSource = child[sourceKey] || ValueSource.Default;
 						if (reset) {
 							if (childValueSource === ValueSource.Inherited) {
@@ -558,9 +558,7 @@ export class InheritedProperty<T extends ViewBase, U> extends Property<T, U> imp
 								setInheritedValue.call(child, newValue);
 							}
 						}
-
-						return true;
-					});
+					}
 				}
 			};
 
@@ -1077,7 +1075,7 @@ export class InheritedCssProperty<T extends Style, U> extends CssProperty<T, U> 
 		const defaultValueKey = this.defaultValueKey;
 
 		const eventName = propertyName + 'Change';
-		let defaultValue: U = options.defaultValue;
+		const defaultValue: U = options.defaultValue;
 		let affectsLayout: boolean = options.affectsLayout;
 		let equalityComparer = options.equalityComparer;
 		let valueChanged = options.valueChanged;
@@ -1127,7 +1125,7 @@ export class InheritedCssProperty<T extends Style, U> extends CssProperty<T, U> 
 				let unsetNativeValue = false;
 				if (reset) {
 					// If unsetValue - we want to reset this property.
-					const parent = view.parent;
+					const parent = view.parentNode as ViewBase;
 					const style = parent ? parent.style : null;
 					// If we have parent and it has non-default value we use as our inherited value.
 					if (style && style[sourceKey] > ValueSource.Default) {
@@ -1194,7 +1192,7 @@ export class InheritedCssProperty<T extends Style, U> extends CssProperty<T, U> 
 						view.requestLayout();
 					}
 
-					view.eachChild((child) => {
+					for (const child of view.childNodes) {
 						const childStyle = child.style;
 						const childValueSource = childStyle[sourceKey] || ValueSource.Default;
 						if (reset) {
@@ -1206,9 +1204,7 @@ export class InheritedCssProperty<T extends Style, U> extends CssProperty<T, U> 
 								setInheritedFunc.call(childStyle, value);
 							}
 						}
-
-						return true;
-					});
+					}
 				}
 			};
 

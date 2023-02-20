@@ -1,6 +1,6 @@
 // Definitions.
-import type { Point, CustomLayoutView as CustomLayoutViewDefinition } from '.';
-import type { GestureTypes, GestureEventData } from '../../gestures';
+import type { Point, CustomLayoutView as CustomLayoutViewDefinition, ViewEventsMap } from '.';
+import type { GestureTypes, GestureEventData, TapGestureEventData, PanGestureEventData, SwipeGestureEventData, RotationGestureEventData, TouchGestureEventData, PinchGestureEventData } from '../../gestures';
 
 // Types.
 import { ViewCommon, isEnabledProperty, originXProperty, originYProperty, isUserInteractionEnabledProperty, testIDProperty } from './view-common';
@@ -15,7 +15,7 @@ import { CoreTypes } from '../../../core-types';
 
 import { Background, BackgroundClearFlags, refreshBorderDrawable } from '../../styling/background';
 import { profile } from '../../../profiling';
-import { topmost } from '../../frame/frame-stack';
+//import { topmost } from '../../frame/frame-stack';
 import { Screen } from '../../../platform';
 import { AndroidActivityBackPressedEventData, android as androidApp } from '../../../application';
 import { Device } from '../../../platform';
@@ -25,6 +25,8 @@ import { AccessibilityLiveRegion, AccessibilityRole, AndroidAccessibilityEvent, 
 import * as Utils from '../../../utils';
 import { SDK_VERSION } from '../../../utils/constants';
 import { CSSShadow } from '../../styling/css-shadow';
+import { DOMEvent, DOMEventWithData, Event } from '../../dom';
+import { ViewBase } from '../view-base';
 
 export * from './view-common';
 // helpers (these are okay re-exported here)
@@ -146,8 +148,13 @@ function initializeDialogFragment() {
 			if (args.cancel) {
 				return;
 			}
-
-			view.notify(args);
+			view.dispatchEvent(
+				new Event('androidBackPressed', {
+					activity: view._context,
+					cancel: false,
+					currentTarget: view,
+				})
+			);
 
 			if (!args.cancel && !view.onBackPressed()) {
 				super.onBackPressed();
@@ -222,7 +229,7 @@ function initializeDialogFragment() {
 			const owner = this.owner;
 			this.activity = new WeakRef(this.getActivity());
 			owner._setupAsRootView(this.getActivity());
-			owner._isAddedToNativeVisualTree = true;
+			owner.isConnected = true;
 
 			// we need to set the window SoftInputMode here.
 			// it wont work is set in onStart
@@ -248,8 +255,8 @@ function initializeDialogFragment() {
 			}
 
 			const owner = this.owner;
-			if (owner && !owner.isLoaded) {
-				owner.callLoaded();
+			if (owner && !owner.isConnected) {
+				owner.connectedCallback();
 			}
 
 			this._shownCallback();
@@ -265,8 +272,8 @@ function initializeDialogFragment() {
 			}
 
 			const owner = this.owner;
-			if (owner && owner.isLoaded) {
-				owner.callUnloaded();
+			if (owner && owner.isConnected) {
+				owner.disconnectedCallback();
 			}
 		}
 
@@ -281,12 +288,12 @@ function initializeDialogFragment() {
 			if (owner) {
 				// Android calls onDestroy before onDismiss.
 				// Make sure we unload first and then call _tearDownUI.
-				if (owner.isLoaded) {
-					owner.callUnloaded();
+				if (owner.isConnected) {
+					owner.disconnectedCallback();
 				}
 
-				owner._isAddedToNativeVisualTree = false;
-				owner._tearDownUI(true);
+				owner.isConnected = false;
+				owner.detachNativeView(true);
 			}
 		}
 	}
@@ -295,7 +302,7 @@ function initializeDialogFragment() {
 }
 
 function saveModal(options: DialogOptions) {
-	modalMap.set(options.owner._domId, options);
+	//modalMap.set(options.owner._domId, options);
 }
 
 function removeModal(domId: number) {
@@ -306,7 +313,7 @@ function getModalOptions(domId: number): DialogOptions {
 	return modalMap.get(domId);
 }
 
-export class View extends ViewCommon {
+export class View<T extends ViewBase = ViewBase, EventsMap = {}> extends ViewCommon<ViewEventsMap<T, EventsMap>> {
 	public static androidBackPressedEvent = androidBackPressedEvent;
 
 	public _dialogFragment: androidx.fragment.app.DialogFragment;
@@ -328,39 +335,39 @@ export class View extends ViewCommon {
 			const owner = weakRef.get();
 			if (owner) {
 				setupAccessibleView(owner);
-				owner.off(View.loadedEvent, handler);
+				owner.removeEventListener('loaded', handler);
 			}
 		};
-		this.on(View.loadedEvent, handler);
+		this.addEventListener('loaded', handler);
 	}
 
 	// TODO: Implement unobserve that detach the touchListener.
 	_observe(type: GestureTypes, callback: (args: GestureEventData) => void, thisArg?: any): void {
 		super._observe(type, callback, thisArg);
-		if (this.isLoaded && !this.touchListenerIsSet) {
+		if (this.isConnected && !this.touchListenerIsSet) {
 			this.setOnTouchListener();
 		}
 	}
 
-	on(eventNames: string, callback: (data: EventData) => void, thisArg?: any) {
-		super.on(eventNames, callback, thisArg);
-		const isLayoutEvent = typeof eventNames === 'string' ? eventNames.indexOf(ViewCommon.layoutChangedEvent) !== -1 : false;
+	// on(eventNames: string, callback: (data: EventData) => void, thisArg?: any) {
+	// 	super.on(eventNames, callback, thisArg);
+	// 	const isLayoutEvent = typeof eventNames === 'string' ? eventNames.indexOf(ViewCommon.layoutChangedEvent) !== -1 : false;
 
-		if (this.isLoaded && !this.layoutChangeListenerIsSet && isLayoutEvent) {
-			this.setOnLayoutChangeListener();
-		}
-	}
+	// 	if (this.isConnected && !this.layoutChangeListenerIsSet && isLayoutEvent) {
+	// 		this.setOnLayoutChangeListener();
+	// 	}
+	// }
 
-	off(eventNames: string, callback?: (data: EventData) => void, thisArg?: any) {
-		super.off(eventNames, callback, thisArg);
-		const isLayoutEvent = typeof eventNames === 'string' ? eventNames.indexOf(ViewCommon.layoutChangedEvent) !== -1 : false;
+	// off(eventNames: string, callback?: (data: EventData) => void, thisArg?: any) {
+	// 	super.off(eventNames, callback, thisArg);
+	// 	const isLayoutEvent = typeof eventNames === 'string' ? eventNames.indexOf(ViewCommon.layoutChangedEvent) !== -1 : false;
 
-		// Remove native listener only if there are no more user listeners for LayoutChanged event
-		if (this.isLoaded && this.layoutChangeListenerIsSet && isLayoutEvent && !this.needsOnLayoutChangeListener()) {
-			this.nativeViewProtected.removeOnLayoutChangeListener(this.layoutChangeListener);
-			this.layoutChangeListenerIsSet = false;
-		}
-	}
+	// 	// Remove native listener only if there are no more user listeners for LayoutChanged event
+	// 	if (this.isConnected && this.layoutChangeListenerIsSet && isLayoutEvent && !this.needsOnLayoutChangeListener()) {
+	// 		this.nativeViewProtected.removeOnLayoutChangeListener(this.layoutChangeListener);
+	// 		this.layoutChangeListenerIsSet = false;
+	// 	}
+	// }
 
 	public _getChildFragmentManager(): androidx.fragment.app.FragmentManager {
 		return null;
@@ -407,7 +414,7 @@ export class View extends ViewCommon {
 
 				// the case is needed because _dialogFragment is on View
 				// but parent may be ViewBase.
-				view = view.parent as View;
+				view = view.parentNode as View;
 			}
 
 			if (!manager) {
@@ -421,28 +428,28 @@ export class View extends ViewCommon {
 	}
 
 	@profile
-	public onLoaded() {
+	public connectedCallback() {
 		this._manager = null;
 		this._rootManager = null;
-		super.onLoaded();
+		super.connectedCallback();
 		this.setOnTouchListener();
 	}
 
 	@profile
-	public onUnloaded() {
+	public disconnectedCallback() {
 		this._manager = null;
 		this._rootManager = null;
-		super.onUnloaded();
+		super.disconnectedCallback();
 	}
 
 	public onBackPressed(): boolean {
-		const topmostFrame = topmost();
+		// const topmostFrame = topmost();
 
-		// Delegate back navigation handling to the topmost Frame
-		// when it's a child of the current View.
-		if (topmostFrame && topmostFrame._hasAncestorView(this)) {
-			return topmostFrame.onBackPressed();
-		}
+		// // Delegate back navigation handling to the topmost Frame
+		// // when it's a child of the current View.
+		// if (topmostFrame && topmostFrame._hasAncestorView(this)) {
+		// 	return topmostFrame.onBackPressed();
+		// }
 
 		return false;
 	}
@@ -454,8 +461,8 @@ export class View extends ViewCommon {
 				element.androidOnTouchEvent(event);
 			});
 		}
-		if (this.parent instanceof View) {
-			this.parent.handleGestureTouch(event);
+		if (this.parentNode instanceof View) {
+			this.parentNode.handleGestureTouch(event);
 		}
 	}
 
@@ -695,7 +702,7 @@ export class View extends ViewCommon {
 
 		const df = new DialogFragment();
 		const args = new android.os.Bundle();
-		args.putInt(DOMID, this._domId);
+		//args.putInt(DOMID, this._domId);
 		df.setArguments(args);
 
 		let cancelable = true;
@@ -727,7 +734,7 @@ export class View extends ViewCommon {
 		this._dialogFragment = df;
 		this._raiseShowingModallyEvent();
 
-		this._dialogFragment.show(parent._getRootFragmentManager(), this._domId.toString());
+		//this._dialogFragment.show(parent._getRootFragmentManager(), this._domId.toString());
 	}
 
 	protected _hideNativeModalView(parent: View, whenClosedCallback: () => void) {
@@ -1122,16 +1129,16 @@ export class View extends ViewCommon {
 	}
 
 	[minWidthProperty.setNative](value: CoreTypes.LengthType) {
-		if (this.parent instanceof CustomLayoutView && this.parent.nativeViewProtected) {
-			this.parent._setChildMinWidthNative(this, value);
+		if (this.parentNode instanceof CustomLayoutView && this.parentNode.nativeViewProtected) {
+			this.parentNode._setChildMinWidthNative(this, value);
 		} else {
 			this._setMinWidthNative(value);
 		}
 	}
 
 	[minHeightProperty.setNative](value: CoreTypes.LengthType) {
-		if (this.parent instanceof CustomLayoutView && this.parent.nativeViewProtected) {
-			this.parent._setChildMinHeightNative(this, value);
+		if (this.parentNode instanceof CustomLayoutView && this.parentNode.nativeViewProtected) {
+			this.parentNode._setChildMinHeightNative(this, value);
 		} else {
 			this._setMinHeightNative(value);
 		}
@@ -1276,8 +1283,8 @@ export class CustomLayoutView extends ContainerView implements CustomLayoutViewD
 		return new org.nativescript.widgets.ContentLayout(this._context);
 	}
 
-	public _addViewToNativeVisualTree(child: ViewCommon, atIndex: number = Number.MAX_SAFE_INTEGER): boolean {
-		super._addViewToNativeVisualTree(child);
+	public onChildAdded(child: ViewCommon, atIndex: number = Number.MAX_SAFE_INTEGER): boolean {
+		super.onChildAdded(child);
 
 		if (this.nativeViewProtected && child.nativeViewProtected) {
 			if (Trace.isEnabled()) {
@@ -1306,8 +1313,8 @@ export class CustomLayoutView extends ContainerView implements CustomLayoutViewD
 		child._setMinHeightNative(value);
 	}
 
-	public _removeViewFromNativeVisualTree(child: ViewCommon): void {
-		super._removeViewFromNativeVisualTree(child);
+	public onChildRemoved(child: ViewCommon): void {
+		super.onChildRemoved(child);
 
 		const nativeView = this.nativeViewProtected;
 		const childView = child.nativeViewProtected;

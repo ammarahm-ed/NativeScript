@@ -104,12 +104,12 @@ export class DOMNode {
 
 		const res = [];
 
-		view.eachChild((child) => {
-			child.ensureDomNode();
-			res.push(child.domNode);
+		// view.eachChild((child) => {
+		// 	child.ensureDomNode();
+		// 	res.push(child.domNode);
 
-			return true;
-		});
+		// 	return true;
+		// });
 
 		return res;
 	}
@@ -119,19 +119,19 @@ export class DOMNode {
 			const view = this.viewRef.get();
 
 			let previousChild: ViewBase;
-			view.eachChild((child) => {
-				if (child === childView) {
-					return false;
-				}
+			// view.eachChild((child) => {
+			// 	if (child === childView) {
+			// 		return false;
+			// 	}
 
-				previousChild = child;
+			// 	previousChild = child;
 
-				return true;
-			});
+			// 	return true;
+			// });
 			const index = previousChild ? previousChild._domId : 0;
 
-			childView.ensureDomNode();
-			ins.childNodeInserted(this.nodeId, index, childView.domNode);
+			//childView.ensureDomNode();
+			//ins.childNodeInserted(this.nodeId, index, childView.domNode);
 		});
 	}
 

@@ -31,7 +31,7 @@ export class ViewHelper {
 			const childHeightMeasureSpec = ViewHelper.getMeasureSpec(heightMeasureSpec, verticalMargins, child.effectiveHeight, style.verticalAlignment === 'stretch');
 
 			if (Trace.isEnabled()) {
-				Trace.write(`${child.parent} :measureChild: ${child} ${layout.measureSpecToString(childWidthMeasureSpec)}, ${layout.measureSpecToString(childHeightMeasureSpec)}}`, Trace.categories.Layout);
+				Trace.write(`${child.parentNode} :measureChild: ${child} ${layout.measureSpecToString(childWidthMeasureSpec)}, ${layout.measureSpecToString(childHeightMeasureSpec)}}`, Trace.categories.Layout);
 			}
 
 			child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
@@ -121,7 +121,7 @@ export class ViewHelper {
 		childTop = Math.round(childTop);
 
 		if (Trace.isEnabled()) {
-			Trace.write(child.parent + ' :layoutChild: ' + child + ' ' + childLeft + ', ' + childTop + ', ' + childRight + ', ' + childBottom, Trace.categories.Layout);
+			Trace.write(child.parentNode + ' :layoutChild: ' + child + ' ' + childLeft + ', ' + childTop + ', ' + childRight + ', ' + childBottom, Trace.categories.Layout);
 		}
 
 		child.layout(childLeft, childTop, childRight, childBottom, setFrame);

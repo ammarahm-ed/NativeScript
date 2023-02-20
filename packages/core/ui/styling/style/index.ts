@@ -6,7 +6,7 @@ import { ViewBase } from '../../core/view-base';
 import { LinearGradient } from '../../styling/linear-gradient';
 import { Observable } from '../../../data/observable';
 
-import { FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, Order, FlexGrow, FlexShrink, FlexWrapBefore, AlignSelf } from '../../layouts/flexbox-layout';
+//import { FlexDirection, FlexWrap, JustifyContent, AlignItems, AlignContent, Order, FlexGrow, FlexShrink, FlexWrapBefore, AlignSelf } from '../../layouts/flexbox-layout';
 import { Trace } from '../../../trace';
 import { CoreTypes } from '../../../core-types';
 import { AccessibilityLiveRegion, AccessibilityRole, AccessibilityState } from '../../../accessibility/accessibility-types';
@@ -78,11 +78,11 @@ export class Style extends Observable implements StyleDefinition {
 			return this.scopedCssVariables.get(varName);
 		}
 
-		if (!view.parent || !view.parent.style) {
+		if (!view.parentNode || !(view.parentNode as ViewBase).style) {
 			return null;
 		}
 
-		return view.parent.style.getCssVariable(varName);
+		return (view.parentNode as ViewBase).style.getCssVariable(varName);
 	}
 
 	public resetScopedCssVariables() {
@@ -210,16 +210,16 @@ export class Style extends Observable implements StyleDefinition {
 	public androidContentInsetRight: CoreTypes.LengthType;
 
 	//flexbox layout properties
-	public flexDirection: FlexDirection;
-	public flexWrap: FlexWrap;
-	public justifyContent: JustifyContent;
-	public alignItems: AlignItems;
-	public alignContent: AlignContent;
-	public order: Order;
-	public flexGrow: FlexGrow;
-	public flexShrink: FlexShrink;
-	public flexWrapBefore: FlexWrapBefore;
-	public alignSelf: AlignSelf;
+	// public flexDirection: FlexDirection;
+	// public flexWrap: FlexWrap;
+	// public justifyContent: JustifyContent;
+	// public alignItems: AlignItems;
+	// public alignContent: AlignContent;
+	// public order: Order;
+	// public flexGrow: FlexGrow;
+	// public flexShrink: FlexShrink;
+	// public flexWrapBefore: FlexWrapBefore;
+	// public alignSelf: AlignSelf;
 
 	// Accessibility properties
 	public accessible: boolean;

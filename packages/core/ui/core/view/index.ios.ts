@@ -61,7 +61,7 @@ export class View extends ViewCommon implements ViewDefinition {
 	constructor() {
 		super();
 
-		this.once(View.loadedEvent, () => setupAccessibleView(this));
+		//this.once(View.loadedEvent, () => setupAccessibleView(this));
 	}
 
 	disposeNativeView() {
@@ -489,10 +489,10 @@ export class View extends ViewCommon implements ViewDefinition {
 						}
 					}
 
-					this.off(View.loadedEvent, handler);
+					//this.off(View.loadedEvent, handler);
 				};
 
-				this.on(View.loadedEvent, handler);
+				//this.on(View.loadedEvent, handler);
 			}
 		}
 
@@ -935,8 +935,8 @@ export class CustomLayoutView extends ContainerView {
 		// Don't call super because it will set MeasureDimension. This method must be overridden and calculate its measuredDimensions.
 	}
 
-	public _addViewToNativeVisualTree(child: View, atIndex: number): boolean {
-		super._addViewToNativeVisualTree(child, atIndex);
+	public onChildAdded(child: View, atIndex: number): boolean {
+		super.onChildAdded(child, atIndex);
 
 		const parentNativeView = this.nativeViewProtected;
 		const childNativeView = child.nativeViewProtected;
@@ -954,8 +954,8 @@ export class CustomLayoutView extends ContainerView {
 		return false;
 	}
 
-	public _removeViewFromNativeVisualTree(child: View): void {
-		super._removeViewFromNativeVisualTree(child);
+	public onChildRemoved(child: View): void {
+		super.onChildRemoved(child);
 
 		if (child.nativeViewProtected) {
 			child.nativeViewProtected.removeFromSuperview();

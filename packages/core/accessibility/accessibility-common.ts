@@ -1,5 +1,6 @@
 import { EventData, EventDataValue } from '../data/observable';
 import type { View } from '../ui/core/view';
+//@ts-ignore
 import type { Page } from '../ui/page';
 
 const lastFocusedViewOnPageKeyName = '__lastFocusedViewOnPage';
@@ -24,27 +25,27 @@ export function notifyAccessibilityFocusState(view: View, receivedFocus: boolean
 		return;
 	}
 
-	view.notify({
-		eventName: accessibilityFocusChangedEvent,
-		object: view,
-		value: !!receivedFocus,
-	} as EventDataValue);
+	// view.notify({
+	// 	eventName: accessibilityFocusChangedEvent,
+	// 	object: view,
+	// 	value: !!receivedFocus,
+	// } as EventDataValue);
 
-	if (receivedFocus) {
-		if (view.page) {
-			view.page[lastFocusedViewOnPageKeyName] = new WeakRef(view);
-		}
+	// if (receivedFocus) {
+	// 	if (view.page) {
+	// 		view.page[lastFocusedViewOnPageKeyName] = new WeakRef(view);
+	// 	}
 
-		view.notify({
-			eventName: accessibilityFocusEvent,
-			object: view,
-		} as EventData);
-	} else if (lostFocus) {
-		view.notify({
-			eventName: accessibilityBlurEvent,
-			object: view,
-		} as EventData);
-	}
+	// 	view.notify({
+	// 		eventName: accessibilityFocusEvent,
+	// 		object: view,
+	// 	} as EventData);
+	// } else if (lostFocus) {
+	// 	view.notify({
+	// 		eventName: accessibilityBlurEvent,
+	// 		object: view,
+	// 	} as EventData);
+	// }
 }
 
 export function getLastFocusedViewOnPage(page: Page): View | null {
@@ -59,7 +60,7 @@ export function getLastFocusedViewOnPage(page: Page): View | null {
 			return null;
 		}
 
-		if (!lastFocusedView.parent || lastFocusedView.page !== page) {
+		if (!lastFocusedView.parentNode || lastFocusedView.page !== page) {
 			return null;
 		}
 

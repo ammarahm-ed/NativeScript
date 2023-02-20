@@ -1,7 +1,9 @@
 // Definitions.
 import { View, Template, KeyedTemplate } from '../core/view';
 import { ViewBase } from '../core/view-base';
+//@ts-ignore
 import { ViewEntry } from '../frame';
+//@ts-ignore
 import { Page } from '../page';
 
 // Types.
@@ -223,10 +225,10 @@ export function getExports(instance: ViewBase): any {
 	}
 
 	let exportObject = (<any>instance).exports;
-	let parent = instance.parent;
+	let parent = instance.parentNode;
 	while (exportObject === undefined && parent) {
 		exportObject = (<any>parent).exports;
-		parent = parent.parent;
+		parent = parent.parentNode;
 	}
 
 	return exportObject;

@@ -45,16 +45,16 @@ class UILayoutViewController extends UIViewController {
 				// Handle nested UILayoutViewController safe area application.
 				// Currently, UILayoutViewController can be nested only in a TabView.
 				// The TabView itself is handled by the OS, so we check the TabView's parent (usually a Page, but can be a Layout).
-				const tabViewItem = owner.parent;
-				const tabView = tabViewItem && tabViewItem.parent;
-				let parent = tabView && tabView.parent;
+				const tabViewItem = owner.parentNode;
+				const tabView = tabViewItem && tabViewItem.parentNode;
+				let parent = tabView && (tabView.parentNode as View);
 
 				// Handle Angular scenario where TabView is in a ProxyViewContainer
 				// It is possible to wrap components in ProxyViewContainers indefinitely
 				// Not using instanceof ProxyViewContainer to avoid circular dependency
 				// TODO: Try moving UILayoutViewController out of view module
 				while (parent && !parent.nativeViewProtected) {
-					parent = parent.parent;
+					parent = parent.parentNode as View;
 				}
 
 				if (parent) {
@@ -99,16 +99,16 @@ class UILayoutViewController extends UIViewController {
 
 		IOSHelper.updateAutoAdjustScrollInsets(this, owner);
 
-		if (!owner.isLoaded && !owner.parent) {
-			owner.callLoaded();
+		if (!owner.isConnected && !owner.parentNode) {
+			owner.connectedCallback();
 		}
 	}
 
 	public viewDidDisappear(animated: boolean): void {
 		super.viewDidDisappear(animated);
 		const owner = this.owner?.deref();
-		if (owner && owner.isLoaded && !owner.parent) {
-			owner.callUnloaded();
+		if (owner && owner.isConnected && !owner.parentNode) {
+			owner.disconnectedCallback();
 		}
 	}
 
@@ -119,10 +119,10 @@ class UILayoutViewController extends UIViewController {
 		if (majorVersion >= 13) {
 			const owner = this.owner?.deref();
 			if (owner && this.traitCollection.hasDifferentColorAppearanceComparedToTraitCollection && this.traitCollection.hasDifferentColorAppearanceComparedToTraitCollection(previousTraitCollection)) {
-				owner.notify({
-					eventName: IOSHelper.traitCollectionColorAppearanceChangedEvent,
-					object: owner,
-				});
+				// owner.notify({
+				// 	eventName: IOSHelper.traitCollectionColorAppearanceChangedEvent,
+				// 	object: owner,
+				// });
 			}
 		}
 	}
@@ -182,7 +182,7 @@ export class IOSHelper {
 
 	static getParentWithViewController(view: View): View {
 		while (view && !view.viewController) {
-			view = view.parent as View;
+			view = view.parentNode as View;
 		}
 
 		// Note: Might return undefined if no parent with viewController is found
@@ -242,8 +242,8 @@ export class IOSHelper {
 		ViewHelper.measureChild(null, owner, widthSpec, heightSpec);
 		ViewHelper.layoutChild(null, owner, position.left, position.top, position.right, position.bottom);
 
-		if (owner.parent) {
-			owner.parent._layoutParent();
+		if (owner.parentNode) {
+			(owner.parentNode as View)._layoutParent();
 		}
 	}
 
@@ -332,9 +332,9 @@ export class IOSHelper {
 		if (view.viewController) {
 			viewControllerView = view.viewController.view;
 		} else {
-			let parent = view.parent as View;
+			let parent = view.parentNode as View;
 			while (parent && !parent.viewController && !(parent.nativeViewProtected instanceof UIScrollView)) {
-				parent = parent.parent as View;
+				parent = parent.parentNode as View;
 			}
 
 			if (parent.nativeViewProtected instanceof UIScrollView) {

@@ -78,85 +78,85 @@ export class TouchManager {
 
 				if (handleDown) {
 					(<UIControl>view.ios).addTargetActionForControlEvents(TouchManager.touchHandlers[TouchManager.touchHandlers.length - 1].handler, GestureEvents.touchDown, UIControlEvents.TouchDown | UIControlEvents.TouchDragEnter);
-					view.on(GestureEvents.touchDown, (args) => {
-						TouchManager.startAnimationForType(view, TouchAnimationTypes.down);
-					});
+					// view.on(GestureEvents.touchDown, (args) => {
+					// 	TouchManager.startAnimationForType(view, TouchAnimationTypes.down);
+					// });
 				}
 				if (handleUp) {
 					(<UIControl>view.ios).addTargetActionForControlEvents(TouchManager.touchHandlers[TouchManager.touchHandlers.length - 1].handler, GestureEvents.touchUp, UIControlEvents.TouchDragExit | UIControlEvents.TouchCancel | UIControlEvents.TouchUpInside | UIControlEvents.TouchUpOutside);
-					view.on(GestureEvents.touchUp, (args) => {
-						TouchManager.startAnimationForType(view, TouchAnimationTypes.up);
-					});
+					// view.on(GestureEvents.touchUp, (args) => {
+					// 	TouchManager.startAnimationForType(view, TouchAnimationTypes.up);
+					// });
 				}
 			} else {
 				if (handleDown || handleUp) {
-					view.on(GestureEvents.gestureAttached, (args: GestureEventData) => {
-						if (args.type === GestureTypes.longPress) {
-							(<UILongPressGestureRecognizer>args.ios).minimumPressDuration = (<View>args.object)?.touchDelay || 0;
-						}
-					});
-					view.on(GestureTypes.longPress, (args: GestureEventDataWithState) => {
-						switch (args.state) {
-							case GestureStateTypes.began:
-								if (handleDown) {
-									TouchManager.startAnimationForType(<View>args.view, TouchAnimationTypes.down);
-								}
-								break;
-							case GestureStateTypes.cancelled:
-							case GestureStateTypes.ended:
-								if (handleUp) {
-									TouchManager.startAnimationForType(<View>args.view, TouchAnimationTypes.up);
-								}
-								break;
-						}
-					});
+					// view.on(GestureEvents.gestureAttached, (args: GestureEventData) => {
+					// 	if (args.type === GestureTypes.longPress) {
+					// 		(<UILongPressGestureRecognizer>args.ios).minimumPressDuration = (<View>args.object)?.touchDelay || 0;
+					// 	}
+					// });
+					// view.on(GestureTypes.longPress, (args: GestureEventDataWithState) => {
+					// 	switch (args.state) {
+					// 		case GestureStateTypes.began:
+					// 			if (handleDown) {
+					// 				TouchManager.startAnimationForType(<View>args.view, TouchAnimationTypes.down);
+					// 			}
+					// 			break;
+					// 		case GestureStateTypes.cancelled:
+					// 		case GestureStateTypes.ended:
+					// 			if (handleUp) {
+					// 				TouchManager.startAnimationForType(<View>args.view, TouchAnimationTypes.up);
+					// 			}
+					// 			break;
+					// 	}
+					// });
 				}
 			}
 		} else {
 			if (handleDown || handleUp) {
-				view.on(GestureTypes.touch, (args: TouchGestureEventData) => {
-					switch (args.action) {
-						case 'down':
-							if (handleDown) {
-								view.notify({
-									eventName: GestureEvents.touchDown,
-									object: view,
-									data: args.android,
-								});
-							}
-							break;
-						case 'up':
-						case 'cancel':
-							if (handleUp) {
-								view.notify({
-									eventName: GestureEvents.touchUp,
-									object: view,
-									data: args.android,
-								});
-							}
-							break;
-					}
-				});
+				// view.on(GestureTypes.touch, (args: TouchGestureEventData) => {
+				// 	switch (args.action) {
+				// 		case 'down':
+				// 			if (handleDown) {
+				// 				view.notify({
+				// 					eventName: GestureEvents.touchDown,
+				// 					object: view,
+				// 					data: args.android,
+				// 				});
+				// 			}
+				// 			break;
+				// 		case 'up':
+				// 		case 'cancel':
+				// 			if (handleUp) {
+				// 				view.notify({
+				// 					eventName: GestureEvents.touchUp,
+				// 					object: view,
+				// 					data: args.android,
+				// 				});
+				// 			}
+				// 			break;
+				// 	}
+				// });
 				if (handleDown) {
-					view.on(GestureEvents.touchDown, (args) => {
-						TouchManager.startAnimationForType(view, TouchAnimationTypes.down);
-					});
+					// view.on(GestureEvents.touchDown, (args) => {
+					// 	TouchManager.startAnimationForType(view, TouchAnimationTypes.down);
+					// });
 				}
 				if (handleUp) {
-					view.on(GestureEvents.touchUp, (args) => {
-						TouchManager.startAnimationForType(view, TouchAnimationTypes.up);
-					});
+					// view.on(GestureEvents.touchUp, (args) => {
+					// 	TouchManager.startAnimationForType(view, TouchAnimationTypes.up);
+					// });
 				}
 			}
 		}
 
-		view.on(View.disposeNativeViewEvent, (args) => {
-			const index = TouchManager.touchHandlers?.findIndex((handler) => handler.view === args.object);
-			if (index > -1) {
-				TouchManager.touchHandlers.splice(index, 1);
-			}
-			TouchManager.touchAnimationDefinitions = TouchManager.touchAnimationDefinitions?.filter((d) => d.view !== args.object);
-		});
+		// view.on(View.disposeNativeViewEvent, (args) => {
+		// 	const index = TouchManager.touchHandlers?.findIndex((handler) => handler.view === args.object);
+		// 	if (index > -1) {
+		// 		TouchManager.touchHandlers.splice(index, 1);
+		// 	}
+		// 	TouchManager.touchAnimationDefinitions = TouchManager.touchAnimationDefinitions?.filter((d) => d.view !== args.object);
+		// });
 	}
 
 	static startAnimationForType(view: View, type: TouchAnimationTypes) {
@@ -231,19 +231,19 @@ function ensureTouchControlHandlers() {
 			}
 
 			touchDown(args) {
-				this._owner?.deref?.().notify({
-					eventName: GestureEvents.touchDown,
-					object: this._owner?.deref?.(),
-					data: args,
-				});
+				// this._owner?.deref?.().notify({
+				// 	eventName: GestureEvents.touchDown,
+				// 	object: this._owner?.deref?.(),
+				// 	data: args,
+				// });
 			}
 
 			touchUp(args) {
-				this._owner?.deref?.().notify({
-					eventName: GestureEvents.touchUp,
-					object: this._owner?.deref?.(),
-					data: args,
-				});
+				// this._owner?.deref?.().notify({
+				// 	eventName: GestureEvents.touchUp,
+				// 	object: this._owner?.deref?.(),
+				// 	data: args,
+				// });
 			}
 		}
 

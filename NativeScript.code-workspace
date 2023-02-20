@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../dominative"
+		},
+		{
+			"path": "../../apps/happy-dom-performance-test"
+		}
+	],
+	"settings": {}
+}

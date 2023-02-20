@@ -27,6 +27,7 @@ import { AccessibilityEventOptions, AccessibilityLiveRegion, AccessibilityRole, 
 import { accessibilityHintProperty, accessibilityIdentifierProperty, accessibilityLabelProperty, accessibilityValueProperty, accessibilityIgnoresInvertColorsProperty } from '../../../accessibility/accessibility-properties';
 import { accessibilityBlurEvent, accessibilityFocusChangedEvent, accessibilityFocusEvent, accessibilityPerformEscapeEvent, getCurrentFontScale } from '../../../accessibility';
 import { CSSShadow } from '../../styling/css-shadow';
+import { DOMEvent } from '../../dom';
 
 // helpers (these are okay re-exported here)
 export * from './view-helper';
@@ -68,7 +69,7 @@ export function PseudoClassHandler(...pseudoClasses: string[]): MethodDecorator 
 
 export const _rootModalViews = new Array<ViewBase>();
 
-export abstract class ViewCommon extends ViewBase implements ViewDefinition {
+export abstract class ViewCommon<EventsMap = {}> extends ViewBase<EventsMap> {
 	public static layoutChangedEvent = 'layoutChanged';
 	public static shownModallyEvent = 'shownModally';
 	public static showingModallyEvent = 'showingModally';
@@ -160,21 +161,21 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 		}
 	}
 
-	onLoaded() {
-		if (!this.isLoaded) {
+	connectedCallback() {
+		if (!this.isConnected) {
 			const enableTapAnimations = TouchManager.enableGlobalTapAnimations && (this.hasListeners('tap') || this.hasListeners('tapChange') || this.getGestureObservers(GestureTypes.tap));
 			if (!this.ignoreTouchAnimation && (this.touchAnimation || enableTapAnimations)) {
 				// console.log('view:', Object.keys((<any>this)._observers));
 				TouchManager.addAnimations(this);
 			}
 		}
-		super.onLoaded();
+		super.connectedCallback();
 	}
 
 	public _closeAllModalViewsInternal(): boolean {
 		if (_rootModalViews && _rootModalViews.length > 0) {
 			_rootModalViews.forEach((v) => {
-				v.closeModal();
+				//v.closeModal();
 			});
 
 			return true;
@@ -265,59 +266,59 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 		return this._gestureObservers[type];
 	}
 
-	public addEventListener(arg: string | GestureTypes, callback: (data: EventData) => void, thisArg?: any) {
-		if (typeof arg === 'string') {
-			arg = getEventOrGestureName(arg);
+	// public addEventListener(arg: string | GestureTypes, callback: (data: EventData) => void, thisArg?: any) {
+	// 	if (typeof arg === 'string') {
+	// 		arg = getEventOrGestureName(arg);
 
-			const gesture = gestureFromString(arg);
-			if (gesture && !this._isEvent(arg)) {
-				this._observe(gesture, callback, thisArg);
-			} else {
-				const events = arg.split(',');
-				if (events.length > 0) {
-					for (let i = 0; i < events.length; i++) {
-						const evt = events[i].trim();
-						const gst = gestureFromString(evt);
-						if (gst && !this._isEvent(arg)) {
-							this._observe(gst, callback, thisArg);
-						} else {
-							super.addEventListener(evt, callback, thisArg);
-						}
-					}
-				} else {
-					super.addEventListener(arg, callback, thisArg);
-				}
-			}
-		} else if (typeof arg === 'number') {
-			this._observe(<GestureTypes>arg, callback, thisArg);
-		}
-	}
+	// 		const gesture = gestureFromString(arg);
+	// 		if (gesture && !this._isEvent(arg)) {
+	// 			this._observe(gesture, callback, thisArg);
+	// 		} else {
+	// 			const events = arg.split(',');
+	// 			if (events.length > 0) {
+	// 				for (let i = 0; i < events.length; i++) {
+	// 					const evt = events[i].trim();
+	// 					const gst = gestureFromString(evt);
+	// 					if (gst && !this._isEvent(arg)) {
+	// 						this._observe(gst, callback, thisArg);
+	// 					} else {
+	// 						super.addEventListener(evt, callback, thisArg);
+	// 					}
+	// 				}
+	// 			} else {
+	// 				super.addEventListener(arg, callback, thisArg);
+	// 			}
+	// 		}
+	// 	} else if (typeof arg === 'number') {
+	// 		this._observe(<GestureTypes>arg, callback, thisArg);
+	// 	}
+	// }
 
-	public removeEventListener(arg: string | GestureTypes, callback?: (data: EventData) => void, thisArg?: any) {
-		if (typeof arg === 'string') {
-			const gesture = gestureFromString(arg);
-			if (gesture && !this._isEvent(arg)) {
-				this._disconnectGestureObservers(gesture);
-			} else {
-				const events = arg.split(',');
-				if (events.length > 0) {
-					for (let i = 0; i < events.length; i++) {
-						const evt = events[i].trim();
-						const gst = gestureFromString(evt);
-						if (gst && !this._isEvent(arg)) {
-							this._disconnectGestureObservers(gst);
-						} else {
-							super.removeEventListener(evt, callback, thisArg);
-						}
-					}
-				} else {
-					super.removeEventListener(arg, callback, thisArg);
-				}
-			}
-		} else if (typeof arg === 'number') {
-			this._disconnectGestureObservers(<GestureTypes>arg);
-		}
-	}
+	// public removeEventListener(arg: string | GestureTypes, callback?: (data: EventData) => void, thisArg?: any) {
+	// 	if (typeof arg === 'string') {
+	// 		const gesture = gestureFromString(arg);
+	// 		if (gesture && !this._isEvent(arg)) {
+	// 			this._disconnectGestureObservers(gesture);
+	// 		} else {
+	// 			const events = arg.split(',');
+	// 			if (events.length > 0) {
+	// 				for (let i = 0; i < events.length; i++) {
+	// 					const evt = events[i].trim();
+	// 					const gst = gestureFromString(evt);
+	// 					if (gst && !this._isEvent(arg)) {
+	// 						this._disconnectGestureObservers(gst);
+	// 					} else {
+	// 						super.removeEventListener(evt, callback, thisArg);
+	// 					}
+	// 				}
+	// 			} else {
+	// 				super.removeEventListener(arg, callback, thisArg);
+	// 			}
+	// 		}
+	// 	} else if (typeof arg === 'number') {
+	// 		this._disconnectGestureObservers(<GestureTypes>arg);
+	// 	}
+	// }
 
 	public onBackPressed(): boolean {
 		return false;
@@ -373,7 +374,7 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 		if (closeCallback) {
 			closeCallback(...args);
 		} else {
-			const parent = this.parent;
+			const parent = this.parentNode as ViewBase;
 			if (parent) {
 				parent.closeModal(...args);
 			}
@@ -411,7 +412,7 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 						options.closeCallback.apply(undefined, originalArgs);
 					}
 
-					that._tearDownUI(true);
+					that.detachNativeView(true);
 				};
 
 				that._hideNativeModalView(parent, whenClosedCallback);
@@ -422,31 +423,31 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 	protected _hideNativeModalView(parent: ViewCommon, whenClosedCallback: () => void) {}
 
 	protected _raiseLayoutChangedEvent() {
-		const args: EventData = {
-			eventName: ViewCommon.layoutChangedEvent,
-			object: this,
-		};
-		this.notify(args);
+		// const args: EventData = {
+		// 	eventName: ViewCommon.layoutChangedEvent,
+		// 	object: this,
+		// };
+		//this.notify(args);
 	}
 
 	protected _raiseShownModallyEvent() {
-		const args: ShownModallyData = {
-			eventName: ViewCommon.shownModallyEvent,
-			object: this,
-			context: this._modalContext,
-			closeCallback: this._closeModalCallback,
-		};
-		this.notify(args);
+		// const args: ShownModallyData = {
+		// 	eventName: ViewCommon.shownModallyEvent,
+		// 	object: this,
+		// 	context: this._modalContext,
+		// 	closeCallback: this._closeModalCallback,
+		// };
+		//this.notify(args);
 	}
 
 	protected _raiseShowingModallyEvent() {
-		const args: ShownModallyData = {
-			eventName: ViewCommon.showingModallyEvent,
-			object: this,
-			context: this._modalContext,
-			closeCallback: this._closeModalCallback,
-		};
-		this.notify(args);
+		// const args: ShownModallyData = {
+		// 	eventName: ViewCommon.showingModallyEvent,
+		// 	object: this,
+		// 	context: this._modalContext,
+		// 	closeCallback: this._closeModalCallback,
+		// };
+		//this.notify(args);
 	}
 
 	private _isEvent(name: string): boolean {
@@ -975,7 +976,7 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 	}
 
 	_getNativeViewsCount(): number {
-		return this._isAddedToNativeVisualTree ? 1 : 0;
+		return this.isConnected ? 1 : 0;
 	}
 
 	_eachLayoutView(callback: (View) => void): void {
@@ -1102,7 +1103,7 @@ export abstract class ViewCommon extends ViewBase implements ViewDefinition {
 	_hasAncestorView(ancestorView: ViewDefinition): boolean {
 		const matcher = (view: ViewDefinition) => view === ancestorView;
 
-		for (let parent = this.parent; parent != null; parent = parent.parent) {
+		for (let parent = this.parentNode; parent != null; parent = parent.parentNode) {
 			if (matcher(<ViewDefinition>parent)) {
 				return true;
 			}

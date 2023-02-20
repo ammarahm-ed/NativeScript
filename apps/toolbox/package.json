@@ -9,7 +9,8 @@
   "dependencies": {
     "@nativescript/core": "file:../../packages/core",
     "nativescript-theme-core": "file:../../node_modules/nativescript-theme-core",
-    "@nativescript/imagepicker": "^1.0.6"
+    "@nativescript/imagepicker": "^1.0.6",
+    "happy-dom": "8.4.2"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",

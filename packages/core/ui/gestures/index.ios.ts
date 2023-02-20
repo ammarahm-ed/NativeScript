@@ -76,7 +76,7 @@ class UIGestureRecognizerImpl extends NSObject {
 		const target = owner ? owner.target : undefined;
 
 		const args = {
-			type: typeParam,
+			gesture: typeParam,
 			view: target,
 			ios: recognizer,
 			android: undefined,
@@ -115,10 +115,10 @@ export class GesturesObserver extends GesturesObserverBase {
 				this._detach();
 			};
 
-			this.target.on('loaded', this._onTargetLoaded);
-			this.target.on('unloaded', this._onTargetUnloaded);
+			// this.target.on('loaded', this._onTargetLoaded);
+			// this.target.on('unloaded', this._onTargetUnloaded);
 
-			if (this.target.isLoaded) {
+			if (this.target.isConnected) {
 				this._attach(this.target, type);
 			}
 		}
@@ -265,8 +265,8 @@ export class GesturesObserver extends GesturesObserverBase {
 		this._detach();
 
 		if (this.target) {
-			this.target.off('loaded', this._onTargetLoaded);
-			this.target.off('unloaded', this._onTargetUnloaded);
+			// this.target.off('loaded', this._onTargetLoaded);
+			// this.target.off('unloaded', this._onTargetUnloaded);
 
 			this._onTargetLoaded = null;
 			this._onTargetUnloaded = null;
@@ -307,13 +307,13 @@ export class GesturesObserver extends GesturesObserverBase {
 				};
 			}
 
-			this.target.notify({
-				eventName: GestureEvents.gestureAttached,
-				object: this.target,
-				type,
-				view: this.target,
-				ios: recognizer,
-			});
+			// this.target.notify({
+			// 	eventName: GestureEvents.gestureAttached,
+			// 	object: this.target,
+			// 	type,
+			// 	view: this.target,
+			// 	ios: recognizer,
+			// });
 		}
 
 		return recognizer;
@@ -382,12 +382,10 @@ function _getTapData(args: GestureEventData): TapGestureEventData {
 	const center = recognizer.locationInView(args.view.nativeViewProtected);
 
 	return <TapGestureEventData>{
-		type: args.type,
+		gesture: args.gesture,
 		view: args.view,
 		ios: args.ios,
 		android: undefined,
-		eventName: args.eventName,
-		object: args.object,
 		getPointerCount: () => recognizer.numberOfTouches,
 		getX: () => center.x,
 		getY: () => center.y,
@@ -399,15 +397,14 @@ function _getPinchData(args: GestureEventData): PinchGestureEventData {
 	const center = recognizer.locationInView(args.view.nativeViewProtected);
 
 	return <PinchGestureEventData>{
-		type: args.type,
+		gesture: args.gesture,
 		view: args.view,
 		ios: args.ios,
 		android: undefined,
 		scale: recognizer.scale,
 		getFocusX: () => center.x,
 		getFocusY: () => center.y,
-		object: args.view,
-		eventName: toString(args.type),
+		object: args.view as any,
 		state: getState(recognizer),
 	};
 }
@@ -416,13 +413,12 @@ function _getSwipeData(args: GestureEventData): SwipeGestureEventData {
 	const recognizer = <UISwipeGestureRecognizer>args.ios;
 
 	return <SwipeGestureEventData>{
-		type: args.type,
+		gesture: args.gesture,
 		view: args.view,
 		ios: args.ios,
 		android: undefined,
 		direction: _getSwipeDirection(recognizer.direction),
-		object: args.view,
-		eventName: toString(args.type),
+		object: args.view as any,
 	};
 }
 
@@ -430,14 +426,13 @@ function _getPanData(args: GestureEventData, view: UIView): PanGestureEventData 
 	const recognizer = <UIPanGestureRecognizer>args.ios;
 
 	return <PanGestureEventData>{
-		type: args.type,
+		gesture: args.gesture,
 		view: args.view,
 		ios: args.ios,
 		android: undefined,
 		deltaX: recognizer.translationInView(view).x,
 		deltaY: recognizer.translationInView(view).y,
-		object: args.view,
-		eventName: toString(args.type),
+		object: args.view as any,
 		state: getState(recognizer),
 	};
 }
@@ -446,13 +441,12 @@ function _getRotationData(args: GestureEventData): RotationGestureEventData {
 	const recognizer = <UIRotationGestureRecognizer>args.ios;
 
 	return <RotationGestureEventData>{
-		type: args.type,
+		gesture: args.gesture,
 		view: args.view,
 		ios: args.ios,
 		android: undefined,
 		rotation: recognizer.rotation * (180.0 / Math.PI),
-		object: args.view,
-		eventName: toString(args.type),
+		object: args.view as any,
 		state: getState(recognizer),
 	};
 }
@@ -461,12 +455,11 @@ function _getLongPressData(args: GestureEventData): GestureEventDataWithState {
 	const recognizer = <UILongPressGestureRecognizer>args.ios;
 
 	return <GestureEventDataWithState>{
-		type: args.type,
+		gesture: args.gesture,
 		view: args.view,
 		ios: args.ios,
 		android: undefined,
-		object: args.view,
-		eventName: toString(args.type),
+		object: args.view as any,
 		state: getState(recognizer),
 	};
 }
@@ -546,7 +539,7 @@ class Pointer implements Pointer {
 
 class TouchGestureEventData implements TouchGestureEventData {
 	eventName: string = toString(GestureTypes.touch);
-	type: GestureTypes = GestureTypes.touch;
+	gesture: GestureTypes = GestureTypes.touch;
 	android: any = undefined;
 	action: string;
 	view: View;

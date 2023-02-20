@@ -275,11 +275,11 @@ export class Binding {
 			if (property === bc.parentValueKey || property.indexOf(bc.parentsValueKey) === 0) {
 				const parentView = this.getParentView(this.target.get(), property).view;
 				if (parentView) {
-					currentObject = parentView.bindingContext;
+					//currentObject = parentView.bindingContext;
 				} else {
 					const targetInstance = this.target.get();
-					targetInstance.off('loaded', this.loadedHandlerVisualTreeBinding, this);
-					targetInstance.on('loaded', this.loadedHandlerVisualTreeBinding, this);
+					// targetInstance.off('loaded', this.loadedHandlerVisualTreeBinding, this);
+					// targetInstance.on('loaded', this.loadedHandlerVisualTreeBinding, this);
 				}
 
 				currentObjectChanged = true;
@@ -406,8 +406,8 @@ export class Binding {
 					if (this.prepareContextForExpression(targetInstance, context, expression, addedProps)) {
 						result = convertExpressionToValue(exp, context, isBackConvert, changedModel ? changedModel : context);
 					} else {
-						targetInstance.off('loaded', this.loadedHandlerVisualTreeBinding, this);
-						targetInstance.on('loaded', this.loadedHandlerVisualTreeBinding, this);
+						// targetInstance.off('loaded', this.loadedHandlerVisualTreeBinding, this);
+						// targetInstance.on('loaded', this.loadedHandlerVisualTreeBinding, this);
 					}
 				}
 			} catch (e) {
@@ -502,7 +502,7 @@ export class Binding {
 				parentViewAndIndex = this.getParentView(target, parentsArray[i]);
 				if (parentViewAndIndex.view) {
 					model[bc.parentsValueKey] = model[bc.parentsValueKey] || {};
-					model[bc.parentsValueKey][parentViewAndIndex.index] = parentViewAndIndex.view.bindingContext;
+					//model[bc.parentsValueKey][parentViewAndIndex.index] = parentViewAndIndex.view.bindingContext;
 					addedProps.push(bc.parentsValueKey);
 				} else {
 					success = false;
@@ -593,12 +593,12 @@ export class Binding {
 			if (!isNaN(index)) {
 				let indexAsInt = parseInt(index);
 				while (indexAsInt > 0) {
-					result = result.parent;
+					result = result.parentNode as ViewBase;
 					indexAsInt--;
 				}
 			} else if (types.isString(index)) {
 				while (result && result.typeName !== index) {
-					result = result.parent;
+					result = result.parentNode as ViewBase;
 				}
 			}
 		}

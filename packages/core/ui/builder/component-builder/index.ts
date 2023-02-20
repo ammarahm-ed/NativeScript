@@ -202,30 +202,29 @@ export function getComponentModule(elementName: string, namespace: string, attri
 
 export function setPropertyValue(instance: View, instanceModule: Object, exports: Object, propertyName: string, propertyValue: any) {
 	// Note: instanceModule can be null if we are loading custom component with no code-behind.
-	if (isBinding(propertyValue) && instance.bind) {
-		const bindOptions = getBindingOptions(propertyName, getBindingExpressionFromAttribute(propertyValue));
-		instance.bind(
-			{
-				sourceProperty: bindOptions[bindingConstants.sourceProperty],
-				targetProperty: bindOptions[bindingConstants.targetProperty],
-				expression: bindOptions[bindingConstants.expression],
-				twoWay: bindOptions[bindingConstants.twoWay],
-			},
-			bindOptions[bindingConstants.source]
-		);
-	} else if (isEventOrGesture(propertyName, instance)) {
-		// Get the event handler from page module exports.
-		const handler = exports && exports[propertyValue];
-
-		// Check if the handler is function and add it to the instance for specified event name.
-		if (typeof handler === 'function') {
-			instance.on(propertyName, handler);
-		}
-	} else if (isKnownFunction(propertyName, instance) && exports && typeof exports[propertyValue] === 'function') {
-		instance[propertyName] = exports[propertyValue];
-	} else {
-		instance[propertyName] = propertyValue;
-	}
+	// if (isBinding(propertyValue) && instance.bind) {
+	// 	const bindOptions = getBindingOptions(propertyName, getBindingExpressionFromAttribute(propertyValue));
+	// 	// instance.bind(
+	// 	// 	{
+	// 	// 		sourceProperty: bindOptions[bindingConstants.sourceProperty],
+	// 	// 		targetProperty: bindOptions[bindingConstants.targetProperty],
+	// 	// 		expression: bindOptions[bindingConstants.expression],
+	// 	// 		twoWay: bindOptions[bindingConstants.twoWay],
+	// 	// 	},
+	// 	// 	bindOptions[bindingConstants.source]
+	// 	// );
+	// } else if (isEventOrGesture(propertyName, instance)) {
+	// 	// Get the event handler from page module exports.
+	// 	const handler = exports && exports[propertyValue];
+	// 	// Check if the handler is function and add it to the instance for specified event name.
+	// 	if (typeof handler === 'function') {
+	// 		//instance.on(propertyName, handler);
+	// 	}
+	// } else if (isKnownFunction(propertyName, instance) && exports && typeof exports[propertyValue] === 'function') {
+	// 	instance[propertyName] = exports[propertyValue];
+	// } else {
+	// 	instance[propertyName] = propertyValue;
+	// }
 }
 
 function getBindingExpressionFromAttribute(value: string): string {

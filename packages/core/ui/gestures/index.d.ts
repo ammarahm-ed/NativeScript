@@ -1,5 +1,6 @@
 import { View } from '../core/view';
 import { EventData } from '../../data/observable';
+import { DOMEventWithData } from '../dom/index';
 
 export * from './touch-manager';
 
@@ -132,11 +133,11 @@ export namespace TouchAction {
 /**
  * Provides gesture event data.
  */
-export interface GestureEventData extends EventData {
+export interface GestureEventData {
 	/**
 	 * Gets the type of the gesture.
 	 */
-	type: GestureTypes;
+	gesture: GestureTypes;
 	/**
 	 * Gets the view which originates the gesture.
 	 */
@@ -172,7 +173,7 @@ export interface TapGestureEventData extends GestureEventData {
 /**
  * Provides gesture event data.
  */
-export interface TouchGestureEventData extends TapGestureEventData {
+export interface TouchGestureEventData extends GestureEventData {
 	/**
 	 * Gets action of the touch. Possible values: 'up', 'move', 'down', 'cancel'
 	 */
@@ -248,7 +249,7 @@ export interface GestureEventDataWithState extends GestureEventData {
 /**
  * Provides gesture event data for pinch gesture.
  */
-export interface PinchGestureEventData extends GestureEventDataWithState {
+export interface PinchGestureEventData extends GestureEventData {
 	scale: number;
 
 	getFocusX(): number;
@@ -265,7 +266,7 @@ export interface SwipeGestureEventData extends GestureEventData {
 /**
  * Provides gesture event data for pan gesture.
  */
-export interface PanGestureEventData extends GestureEventDataWithState {
+export interface PanGestureEventData extends GestureEventData {
 	deltaX: number;
 	deltaY: number;
 }
@@ -273,7 +274,7 @@ export interface PanGestureEventData extends GestureEventDataWithState {
 /**
  * Provides gesture event data for rotation gesture.
  */
-export interface RotationGestureEventData extends GestureEventDataWithState {
+export interface RotationGestureEventData extends GestureEventData {
 	rotation: number;
 }
 

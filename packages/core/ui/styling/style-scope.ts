@@ -427,7 +427,7 @@ export class CssState {
 	 */
 	public onChange(): void {
 		const view = this.viewRef.get();
-		if (view && view.isLoaded) {
+		if (view && view.isConnected) {
 			this.unsubscribeFromDynamicUpdates();
 			this.updateMatch();
 			this.subscribeForDynamicUpdates();

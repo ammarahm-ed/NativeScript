@@ -97,11 +97,30 @@ export interface ShownModallyData extends EventData {
 	closeCallback?: Function;
 }
 
+export type ViewEventsMap<T extends ViewBase, EventsMap> = {
+	layoutChanged: DOMEvent<T>;
+	shownModally: DOMEvent<T>;
+	showingModally: DOMEvent<T>;
+	accessibilityBlur: DOMEvent<T>;
+	accessibilityFocus: DOMEvent<T>;
+	accessibilityPerformEscape: DOMEvent<T>;
+	accessibilityFocusChanged: DOMEvent<T>;
+	tap: DOMEventWithData<T, TapGestureEventData>;
+	doubleTap: DOMEventWithData<T, TapGestureEventData>;
+	pan: DOMEventWithData<T, PanGestureEventData>;
+	swipe: DOMEventWithData<T, SwipeGestureEventData>;
+	rotation: DOMEventWithData<T, RotationGestureEventData>;
+	longPress: DOMEventWithData<T, GestureEventData>;
+	touch: DOMEventWithData<T, TouchGestureEventData>;
+	pinch: DOMEventWithData<T, PinchGestureEventData>;
+	androidBackPressed: DOMEventWithData<T, AndroidActivityBackPressedEventData>;
+} & EventsMap;
+
 /**
  * This class is the base class for all UI components.
  * A View occupies a rectangular area on the screen and is responsible for drawing and layouting of all UI components within.
  */
-export abstract class View extends ViewCommon {
+export abstract class View<T extends ViewBase = ViewBase, EventsMap = {}> extends ViewCommon<ViewEventsMap<T, EventsMap>> {
 	/**
 	 * String value used when hooking to layoutChanged event.
 	 */
@@ -146,7 +165,7 @@ export abstract class View extends ViewCommon {
 	/**
 	 * Gets or sets the binding context of this instance. This object is used as a source for each Binding that does not have a source object specified.
 	 */
-	bindingContext: any;
+	//bindingContext: any;
 
 	/**
 	 * Gets or sets the border color of the view.
@@ -585,7 +604,7 @@ export abstract class View extends ViewCommon {
 	 * @param callback An optional parameter pointing to a specific listener. If not defined, all listeners for the event names will be removed.
 	 * @param thisArg An optional parameter which when set will be used to refine search of the correct callback which will be removed as event listener.
 	 */
-	off(eventNames: string | GestureTypes, callback?: (args: EventData) => void, thisArg?: any);
+	//off(eventNames: string | GestureTypes, callback?: (args: EventData) => void, thisArg?: any);
 
 	/**
 	 * A basic method signature to hook an event listener (shortcut alias to the addEventListener method).
@@ -593,33 +612,33 @@ export abstract class View extends ViewCommon {
 	 * @param callback - Callback function which will be executed when event is raised.
 	 * @param thisArg - An optional parameter which will be used as `this` context for callback execution.
 	 */
-	on(eventNames: string | GestureTypes, callback: (args: EventData) => void, thisArg?: any);
+	// on(eventNames: string | GestureTypes, callback: (args: EventData) => void, thisArg?: any);
 
-	/**
-	 * Raised when a loaded event occurs.
-	 */
-	on(event: 'loaded', callback: (args: EventData) => void, thisArg?: any);
+	// /**
+	//  * Raised when a loaded event occurs.
+	//  */
+	// on(event: 'loaded', callback: (args: EventData) => void, thisArg?: any);
 
-	/**
-	 * Raised when an unloaded event occurs.
-	 */
-	on(event: 'unloaded', callback: (args: EventData) => void, thisArg?: any);
+	// /**
+	//  * Raised when an unloaded event occurs.
+	//  */
+	// on(event: 'unloaded', callback: (args: EventData) => void, thisArg?: any);
 
-	/**
-	 * Raised when a back button is pressed.
-	 * This event is raised only for android.
-	 */
-	on(event: 'androidBackPressed', callback: (args: EventData) => void, thisArg?: any);
+	// /**
+	//  * Raised when a back button is pressed.
+	//  * This event is raised only for android.
+	//  */
+	// on(event: 'androidBackPressed', callback: (args: EventData) => void, thisArg?: any);
 
-	/**
-	 * Raised before the view is shown as a modal dialog.
-	 */
-	on(event: 'showingModally', callback: (args: ShownModallyData) => void, thisArg?: any): void;
+	// /**
+	//  * Raised before the view is shown as a modal dialog.
+	//  */
+	// on(event: 'showingModally', callback: (args: ShownModallyData) => void, thisArg?: any): void;
 
-	/**
-	 * Raised after the view is shown as a modal dialog.
-	 */
-	on(event: 'shownModally', callback: (args: ShownModallyData) => void, thisArg?: any);
+	// /**
+	//  * Raised after the view is shown as a modal dialog.
+	//  */
+	// on(event: 'shownModally', callback: (args: ShownModallyData) => void, thisArg?: any);
 
 	/**
 	 * Returns the current modal view that this page is showing (is parent of), if any.
